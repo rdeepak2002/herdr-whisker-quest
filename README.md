@@ -8,9 +8,9 @@ knight charges when it runs tests, the cleric heals the party, and the whole par
 mimics and the dreaded **Vacuum Golem** on a battle stage above your terminals. Each Herdr space has its own scene,
 so switching spaces takes you somewhere new.
 
-![Animated Whisker Quest demo in Herdr with four cats battling the Vacuum Golem, a browser pane, and the Quest log](docs/hero.gif)
+![Animated Whisker Quest demo in Herdr with four cats battling the Vacuum Golem and resting at camp, alongside a browser pane and the Quest log](docs/hero.gif)
 
-[See the web-app demo space and its Quest log](docs/demo-web.png).
+[See the campsite screenshot](docs/hero.png) or [the web-app demo space and its Quest log](docs/demo-web.png).
 
 ![The battle stage, recorded live: the party fights, Tiger uses TIGER CLAW, the cleric heals, the Vacuum Golem falls, and a treasure chest appears](docs/battle.gif)
 
