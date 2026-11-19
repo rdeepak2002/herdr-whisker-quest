@@ -8,7 +8,7 @@ knight charges when it runs tests, the cleric heals the party, and the whole par
 mimics and the dreaded **Vacuum Golem** on a battle stage above your terminals. Each Herdr space has its own scene,
 so switching spaces takes you somewhere new.
 
-![Whisker Quest in Herdr with four demo terminals, a cat battle, and a demo Quest log](docs/hero.png)
+![Animated Whisker Quest demo in Herdr with four cats battling the Vacuum Golem, a browser pane, and the Quest log](docs/hero.gif)
 
 [See the web-app demo space and its Quest log](docs/demo-web.png).
 
