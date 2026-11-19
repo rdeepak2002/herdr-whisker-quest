@@ -192,6 +192,9 @@ const commandKind = (cmd) => {
 const clean = (s) => s.replace(/\x1b\[[0-9;?]*[A-Za-z]/g, "").replace(/\(ctrl\+o to expand\)/g, "").replace(/\s+/g, " ").trim();
 const kindOf = (text) => RULES.find(([, re]) => re.test(text))?.[0] ?? null;
 const refine = (kind, cmd) => (kind === "cast" ? commandKind(cmd) : kind);
+// A tool's arguments as Claude Code shows them, `pattern: "def", output_mode: "content"`: just the first value ("def")
+const argSummary = (s) => String(s ?? "").match(/^\s*[\w-]+:\s*"([^"]*)"/)?.[1] ?? s;
+
 export function classify(screen) {
   const lines = String(screen ?? "").split(/\r?\n/).slice(-80);
   for (let i = lines.length - 1; i >= 0; i--) {
@@ -208,7 +211,7 @@ export function classify(screen) {
     if (cmd) return { kind: commandKind(cmd[1]), detail: cut(/^\w[\w ]*\(.*\)$/.test(head) ? cmd[1] : head) };
     // a tool call: Name(args)
     const call = head.match(/^(\w[\w ]*?)\s*\((.*)\)$/);
-    if (call && kindOf(call[1])) return { kind: refine(kindOf(call[1]), call[2]), detail: cut(call[2]) };
+    if (call && kindOf(call[1])) return { kind: refine(kindOf(call[1]), call[2]), detail: cut(argSummary(call[2])) };
     // a group of tools: the last part is what runs now; finished groups (no "…") mean it's thinking again
     if (/…$/.test(head)) {
       const part = head.replace(/…$/, "").split(/,\s*/).pop();
@@ -231,7 +234,9 @@ export function classify(screen) {
 export function screenStatus(screen) {
   const lines = String(screen ?? "").split(/\r?\n/).slice(-30);
   const tail = lines.join("\n");
-  if (/Do you want to (?:proceed|make this edit|create|allow|run)|Allow (?:once|always)|❯\s*1\.\s*Yes\b/i.test(tail)) return "blocked";
+  // a question waiting for you: a permission prompt, the folder trust check, or any dialog Claude Code ends with
+  // "Enter to confirm · Esc to cancel"
+  if (/Do you want to (?:proceed|make this edit|create|allow|run)|Allow (?:once|always)|❯\s*1\.\s*Yes\b|Yes, I trust this folder|Enter to confirm\s*·\s*Esc to cancel/i.test(tail)) return "blocked";
   if (/esc to interrupt/i.test(tail) || lines.some((l) => SPINNER.test(l))) return "working";
   return "idle";
 }

@@ -93,6 +93,10 @@ export default class PixelChrome extends View {
     });
     // the shown space (and with it its scene) changes without this copy re-rendering: look once a second (cheap)
     cx.timer.every(1000, (cx) => { if (`${shared("layout")}|${this.wanted().id}` !== this.applied) cx.spawn(async (cx) => this.applyScene(cx)); });
+    // places.json pins apply without a restart
+    cx.timer.every(10000, (cx) => cx.spawn(async (cx) => {
+      try { const p = JSON.parse(await readTextFile(PINS_FILE())); this.pins = p && typeof p === "object" && !Array.isArray(p) ? p : {}; } catch { this.pins = {}; }
+    }));
     // Key command "wq-chrome.next-scene" (bind it in keys.json) does what clicking the quest day does.
     cx.spawn(async (cx) => {
       for (;;) if (String(await nextCommand()).endsWith("next-scene")) this.nextScene(cx);

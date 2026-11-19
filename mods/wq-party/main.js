@@ -49,11 +49,13 @@ const parse = (text) => { try { return JSON.parse(text); } catch { return null; 
 // One animated sprite: a glyph of the character's color pixel font, switched natively by .frames().
 // The shown space's scene, worked out here (spacescene.js, the rule wq-chrome paints the window with) so the stage
 // changes the moment the space does, instead of after wq-chrome has rewritten the layout file.
-let PINS = null; // mods/wq-spaces/places.json, read once
+let PINS = null; // mods/wq-spaces/places.json, read again every 10 s (so an edit applies without a restart)
+let PINS_AT = 0;
 function scenePins() {
-  if (PINS === null) {
-    PINS = {};
-    readTextFile(`${appHome()}/mods/wq-spaces/places.json`).then((t) => { try { const p = JSON.parse(t); if (p && typeof p === "object" && !Array.isArray(p)) PINS = p; } catch {} }).catch(() => {});
+  if (PINS === null || Date.now() - PINS_AT > 10000) {
+    PINS ??= {};
+    PINS_AT = Date.now();
+    readTextFile(`${appHome()}/mods/wq-spaces/places.json`).then((t) => { try { const p = JSON.parse(t); PINS = p && typeof p === "object" && !Array.isArray(p) ? p : {}; } catch { PINS = {}; } }).catch(() => { PINS = {}; });
   }
   return PINS;
 }
