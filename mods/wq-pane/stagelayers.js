@@ -7,6 +7,7 @@
 // each other at the same step share a "lane": one element per color for the whole lane, each step's text placing the
 // lane's visible boxes side by side with blank spacer glyphs. Runs when a plan is made (on the timer), not in render.
 import { LAYERS } from "./layers.js";
+import { onTick } from "./lib.js";
 
 const BLANK = " ";
 const INFO = new Map();
@@ -138,7 +139,7 @@ export function layerStage(items) {
           frames[t] = s;
           any = true;
         }
-        if (any) out.push({ key: `${gkey}|${li}|${k}`, family: its[0].family, x: x0, y: y0, w: x1 - x0, rows: y1 - y0 + 1, color: I.colors[k], frames, ms: its[0].ms });
+        if (any) out.push({ key: `${gkey}|${li}|${k}`, family: its[0].family, x: x0, y: y0, w: x1 - x0, rows: y1 - y0 + 1, color: I.colors[k], frames, ms: onTick(its[0].ms) });
       }
     });
   }

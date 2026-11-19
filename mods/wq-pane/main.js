@@ -29,7 +29,7 @@ const REPLAN_MS = 60 * 1000; // new kinds alone wait this long before the battle
 // Battery: every animated element redraws the window on each of its frames, and the stage has hundreds. While no agent
 // works (camp, victory), the stage animates for CALM_MS, then holds still (no redraws at all) until a battle starts or
 // the pointer is on the stage.
-const CALM_MS = 90 * 1000;
+const CALM_MS = 60 * 1000;
 
 function folder(cwd) {
   if (!cwd) return "";

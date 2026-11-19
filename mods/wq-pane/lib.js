@@ -83,8 +83,13 @@ const ANIMS = {
 // The finer kinds of work (classify below) borrow a sprite motion for the cards; the battle stage gives each its own scene.
 const LOOKS = { test: "cast", build: "write", git: "cast", install: "read", delete: "cast", search: "read", plan: "read", wait: "stand", media: "summon" };
 export const ART = { height: 32, stage: 80, solo: 36, scale: 2 };
+// Every animation's frame time is a multiple of TICK (the battle stage's step), so all of them change frames on the
+// same ticks of Herdr's shared clock: the window redraws once per tick instead of once per animation (battery).
+export const TICK = 90;
+export const onTick = (ms) => Math.max(TICK, Math.round(ms / TICK) * TICK);
 export function frames(anim, solo) {
-  const [base, n, ms] = ANIMS[anim] ?? ANIMS[LOOKS[anim]] ?? ANIMS.stand;
+  const [base, n, raw] = ANIMS[anim] ?? ANIMS[LOOKS[anim]] ?? ANIMS.stand;
+  const ms = onTick(raw);
   const first = base + (solo ? 0x400 : 0);
   return { list: Array.from({ length: n }, (_, i) => String.fromCodePoint(first + i)), ms };
 }
@@ -251,7 +256,13 @@ export function partyFor(qs, all, picks, acts, ownPane, max = 4, who = null) {
     const st = ag?.status ?? q.status ?? (isAgentPane(q) ? act?.status ?? null : null);
     return { pane: q.pane, terminal: q.terminal, ch: c, st, act, anim: animFor(st, act), own: q.pane === ownPane, key: q.pane, summons: act?.count };
   });
-  if (out.length > max) out = out.filter((m, i) => i < max - 1 || m.own).slice(0, max);
+  if (out.length > max) {
+    // more panes than stage slots: the focused pane first, then agents at work or waiting, then other agents, then
+    // the rest (shells, a browser); the stage keeps the tab's own order
+    const rank = (m) => (m.own ? 0 : m.st === "working" || m.st === "blocked" ? 1 : m.st ? 2 : 3);
+    const keep = new Set(out.map((m, i) => [rank(m), i, m]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).slice(0, max).map(([, , m]) => m));
+    out = out.filter((m) => keep.has(m));
+  }
   return out;
 }
 

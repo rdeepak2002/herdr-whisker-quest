@@ -117,7 +117,15 @@ export default class PixelParty extends View {
         } catch {}
         next[a.address] ??= this.activity[a.address] ?? { kind: "think", detail: null };
       }));
-      await Promise.all(quiet.map(async (a) => {
+      // agents read from the screen: at work or waiting every tick, idle ones every 4th (about 6 s; battery)
+      this.tick = (this.tick ?? 0) + 1;
+      const due = quiet.filter((a) => {
+        const st = this.activity[a.address]?.status;
+        if (st === "working" || st === "blocked" || this.tick % 4 === 0 || !this.activity[a.address]) return true;
+        next[a.address] = this.activity[a.address];
+        return false;
+      });
+      await Promise.all(due.map(async (a) => {
         try {
           const r = await hc(["read", a.address]);
           if (r.code !== 0) return;
