@@ -141,7 +141,8 @@ export default class PixelChrome extends View {
       .on_mouse_down("left", (_e, cx) => cx.stop_propagation()).on_click(action).child(svg(ICON(icon)).size(16));
   }
 
-  render() {
+  render(cx) {
+    if (!props()?.footer && !checking() && cx && `${shared("layout")}|${this.wanted?.()?.id}` !== this.applied && !this.applying) cx.spawn(async (cx) => this.applyScene(cx));
     const t = theme();
     const collapsed = narrow();
     if (props()?.footer) {

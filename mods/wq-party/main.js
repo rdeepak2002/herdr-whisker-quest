@@ -11,6 +11,7 @@
 import { View, div, image, svg } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
 import { agents, panes, spaces, terminals, appHome, home, readTextFile, exec, hc, run, setAgentOrder, theme, shared, setShared, layout, checking } from "herdr";
+import { sceneMap } from "./spacescene.js";
 import { ROSTER, character, facePath, familyOf, layersOf, frames, battleLine, classify, screenStatus, isAgentPane, entriesFor, agentKey, settle, launched, modelName, cleanText, gauges, ART, alpha, backdrop, ACTING } from "./lib.js";
 
 const HOME = appHome();
@@ -46,6 +47,23 @@ const isAgent = (a) => /claude|codex/i.test(`${a.app ?? ""} ${a.program?.key ?? 
 const parse = (text) => { try { return JSON.parse(text); } catch { return null; } };
 
 // One animated sprite: a glyph of the character's color pixel font, switched natively by .frames().
+// The shown space's scene, worked out here (spacescene.js, the rule wq-chrome paints the window with) so the stage
+// changes the moment the space does, instead of after wq-chrome has rewritten the layout file.
+let PINS = null; // mods/wq-spaces/places.json, read once
+function scenePins() {
+  if (PINS === null) {
+    PINS = {};
+    readTextFile(`${appHome()}/mods/wq-spaces/places.json`).then((t) => { try { const p = JSON.parse(t); if (p && typeof p === "object" && !Array.isArray(p)) PINS = p; } catch {} }).catch(() => {});
+  }
+  return PINS;
+}
+function shownScene() {
+  const all = spaces();
+  const sp = all.find((s) => s.active) ?? all[0];
+  const id = sp ? sceneMap(all, shared("wq.scene.pick") ?? {}, scenePins())[sp.id] : null;
+  return id ?? shared("wq.scene") ?? "night";
+}
+
 export function sprite(ch, anim, solo, key) {
   const f = frames(anim, solo);
   const w = (solo ? ART.solo : ART.stage) * ART.scale;
@@ -212,7 +230,7 @@ export default class PixelParty extends View {
       .child(
         // the battle tile: a strip of ground under the sprite
         div().relative().flex_none().w(SOLO_W).h(SPR_H).border(0)
-          .child(image(backdrop(shared("wq.scene"), true)).absolute().left(0).top(0).w(SOLO_W).h(SPR_H).when(a.status === "idle", (el) => el.opacity(0.7)))
+          .child(image(backdrop(shownScene(), true)).absolute().left(0).top(0).w(SOLO_W).h(SPR_H).when(a.status === "idle", (el) => el.opacity(0.7)))
           .child(div().absolute().left(0).top(0).child(sprite(ch, line.anim, true, `spr-${a.address}`))),
       )
       .child(

@@ -501,8 +501,7 @@ export default class Spaces extends View {
     this.fit(items, sp.length);
     return v_flex().size_full().min_h(0).text_size(12)
       .child(h_flex().h(28).flex_none().pl(10).pr(6).gap(6).items_center().border_b(2).border_color(alpha(t.border, "60"))
-        .when(!collapsed, el => el.child(svg(ICON("chevron-right")).size(12).text_color(t.accent)).child(div().text_color(t.accent).child("SPACES"))
-          .child(div().font_family("Galmuri9").text_size(10).text_color(t.muted).child("DESTINATIONS")))
+        .when(!collapsed, el => el.child(svg(ICON("chevron-right")).size(12).text_color(t.accent)).child(div().text_color(t.accent).child("JOURNEYS")))
         .child(div().flex_1())
         .child(div().id("space-new").size(24).flex_none().flex().items_center().justify_center().text_color(t.dim).hover(s => s.bg(t.hover).text_color(t.accent))
           .tooltip("New space").on_click(() => run("space.new")).child(svg(ICON("plus")).size(12))))

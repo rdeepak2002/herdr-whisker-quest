@@ -12,11 +12,12 @@
 //   { "tab": "active", "pane": { "header": { "content": { "mod": "wq-pane" }, "height": 30 } } }
 import { View, div, svg, image } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
-import { panes, agents, props, run, theme, home, appHome, terminals, shared, exec, checking, focused, spaces, layout } from "herdr";
+import { panes, agents, props, run, theme, home, appHome, terminals, shared, exec, checking, focused, spaces, layout, readTextFile } from "herdr";
 import { battleLine, partyFor, isAgentPane, launched, modelName, ART, alpha, mix, ACTING, layersOf } from "./lib.js";
 import { STAGE } from "./stage.js";
 import { plan, glyphs, isNight, hash, MAX_PARTY, STEP, SLOT_MS } from "./plan.js";
 import { layerStage } from "./stagelayers.js";
+import { sceneMap } from "./spacescene.js";
 
 const ICON = (n) => `mods/wq-chrome/icons/${n}.svg`;
 const Z = ART.scale;
@@ -25,6 +26,10 @@ const GLYPH_H = STAGE.glyphHeight * Z;
 const LOG_W = 300; // the battle log beside the stage, at least
 const KIND_MS = 5 * 60 * 1000; // the kinds of work a member's turns go through: what its agent did this recently
 const REPLAN_MS = 60 * 1000; // new kinds alone wait this long before the battle is planned again
+// Battery: every animated element redraws the window on each of its frames, and the stage has hundreds. While no agent
+// works (camp, victory), the stage animates for CALM_MS, then holds still (no redraws at all) until a battle starts or
+// the pointer is on the stage.
+const CALM_MS = 90 * 1000;
 
 function folder(cwd) {
   if (!cwd) return "";
@@ -45,7 +50,23 @@ const makePlan = (job) => {
   if (sc) sc.layered = layerStage(sc.items);
   return { base: job.base, full: job.full, at: job.at, sc };
 };
-const sceneNow = () => (STAGE.scenes[shared("wq.scene")] ? shared("wq.scene") : "night");
+// The shown space's scene, worked out here (spacescene.js, the rule wq-chrome paints the window with) so the stage
+// changes the moment the space does, instead of after wq-chrome has rewritten the layout file.
+let PINS = null; // mods/wq-spaces/places.json, read once
+function scenePins() {
+  if (PINS === null) {
+    PINS = {};
+    readTextFile(`${appHome()}/mods/wq-spaces/places.json`).then((t) => { try { const p = JSON.parse(t); if (p && typeof p === "object" && !Array.isArray(p)) PINS = p; } catch {} }).catch(() => {});
+  }
+  return PINS;
+}
+function shownScene() {
+  const all = spaces();
+  const sp = all.find((s) => s.active) ?? all[0];
+  const id = sp ? sceneMap(all, shared("wq.scene.pick") ?? {}, scenePins())[sp.id] : null;
+  return id ?? shared("wq.scene") ?? "night";
+}
+const sceneNow = () => (STAGE.scenes[shownScene()] ? shownScene() : "night");
 const tabParty = (tab, ownPane) => partyFor(panes().filter((q) => q.tab === tab), agents(), shared("wq.party") ?? {},
   shared("wq.activity") ?? {}, ownPane, MAX_PARTY, shared("wq.who") ?? null);
 
@@ -58,6 +79,9 @@ export default class PixelPane extends View {
     this.seen = new Map(); // pane -> [{ kind, at }]: the kinds of work its agent did lately, in the order first seen
     this.pending = false; // new kinds wait for REPLAN_MS
     this.want = null; // a battle render asked for: planned on the timer below, not in render
+    this.calmSince = null; // when the stage stopped fighting (camp / victory)
+    this.still = false;
+    this.stageHover = false;
     this.timed = false;
     if (checking()) return;
     if (props()?.stage) {
@@ -77,7 +101,8 @@ export default class PixelPane extends View {
         const w = globalThis.window?.viewport_size?.()?.width ?? null;
         const slot = Math.floor(Date.now() / SLOT_MS);
         const due = this.pending && Date.now() - (this.cache?.at ?? 0) >= REPLAN_MS;
-        if (due || w !== this.size?.w || slot !== this.size?.slot || isNight() !== this.size?.night) {
+        const settle = this.calmSince != null && !this.still && Date.now() - this.calmSince > CALM_MS;
+        if (due || settle || w !== this.size?.w || slot !== this.size?.slot || isNight() !== this.size?.night) {
           this.size = { w, slot, night: isNight() };
           cx.notify();
         }
@@ -239,14 +264,22 @@ export default class PixelPane extends View {
     const full = JSON.stringify([base, members.map((m) => [m.kinds, m.summons ?? 0])]);
     if (!this.cache || this.cache.base !== base || (this.cache.full !== full && ms - this.cache.at >= REPLAN_MS)) {
       const job = { base, full, at: ms, args: party.length ? [members, sceneId, night, W, pick] : null };
-      if (this.timed) this.want = job;
+      // a battle takes a while to plan (the timer makes it); camp and victory are quick, so a space or tab switch shows
+      // the right party at once
+      if (this.timed && party.some((m) => m.st === "working")) this.want = job;
       else this.cache = makePlan(job);
     }
     this.pending = (this.cache?.full ?? null) !== full;
     const sc = this.cache?.sc ?? null; // until the timer makes the new plan, the last one
     const off = Math.round((STAGE.stripWidth - W) * (STAGE.anchor[sceneId] ?? 0.5));
     const rim = alpha(t.foreground, "60");
+    // camp and victory hold still after CALM_MS (see CALM_MS); a battle or the pointer brings them back to life
+    const moving = sc?.mode === "battle";
+    if (moving || !sc) this.calmSince = null;
+    else this.calmSince ??= Date.now();
+    this.still = !moving && this.calmSince != null && Date.now() - this.calmSince > CALM_MS && !this.stageHover;
     const strip = div().id("stage-strip").relative().flex_none().w(W * Z).h(STAGE_H).overflow_hidden().border_r(2).border_color(rim)
+      .on_hover((h, cx) => { this.stageHover = h; if (h) this.calmSince = Date.now(); cx.notify(); })
       .child(image(`mods/wq-party/scenes/${sceneId}.png`).absolute().left(-off * Z).top(0).w(STAGE.stripWidth * Z).h(STAGE_H))
       .children((sc?.layered ?? []).map((it) => {
         // one line per art row (stagelayers.js): a line is Z px, and a glyph draws (GLYPH_H - Z) / 2 above its line, so
@@ -255,7 +288,8 @@ export default class PixelPane extends View {
         const el = div().id(`st-${it.key}`).absolute().left(it.x * Z).top(top).w(it.w * Z).h((it.rows - 1) * Z + GLYPH_H)
           .font_family(it.family).text_size(GLYPH_H).line_height(`${Z}px`).whitespace_nowrap()
           .when(Boolean(it.color), (e) => e.text_color(it.color));
-        return it.frames.length > 1 ? el.frames(it.frames, it.ms) : el.child(it.frames[0]);
+        // holding still: every element shows its first step, so each sprite's colors stay one pose
+        return it.frames.length > 1 && !this.still ? el.frames(it.frames, it.ms) : el.child(it.frames[0]);
       }));
     // the log: what's happening, the line before, and who does what
     const title = !sc ? "No party here" : sc.mode === "battle" ? `BATTLE · vs ${sc.foe}` : sc.mode === "victory" ? "VICTORY" : `CAMP · ${night ? "night" : "day"}`;
