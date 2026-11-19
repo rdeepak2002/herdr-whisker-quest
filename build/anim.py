@@ -133,7 +133,7 @@ def sparkle(cv, x, y, size, c, glow=None):
 
 
 def bolt(cv, x0, x1, y, m):
-    # Zoltraak-like beam: white core, coloured glow, flickering deep edge
+    # a magic beam: white core, coloured glow, flickering deep edge
     core, glow, deep = hexc(m[1]), hexc(m[2], 230), hexc(m[3], 170)
     for x in range(int(x0), int(x1)):
         cv.px(x, y, core)
@@ -680,7 +680,7 @@ def build_one(args):
     pal = info['colors']
     face(poses, anchors, f'{faces_dir}/{name}.png')
     if prev_dir:
-        # every glyph as it looks, for stage_preview.py
+        # every glyph as it looks (an atlas, for inspecting a build)
         np.savez_compressed(f'{prev_dir}/atlas_{name}.npz', **{f'{cp:x}': f for cp, _, f in glyphs})
         # preview strip of the stage frames (2x)
         st = [f for cp, w, f in glyphs if w == STAGE_W and cp < SOLO_BASE]

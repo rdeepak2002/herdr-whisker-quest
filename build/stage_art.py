@@ -9,7 +9,7 @@
 - fonts/WhiskerDot<v>-props.ttf      campfire (lit, embers, cooking pot), tent, chests, bedroll, signpost, backpack, ring
 - <wq-pane>/stage.js  every code point and width, the characters' attack tips and the monsters' shapes
 
-usage: python stage_art.py <herdr home> [atlas dir: every glyph as an image, for stage_preview.py]
+usage: python stage_art.py <herdr home> [atlas dir: every glyph as an image, for inspecting a build]
 """
 import sys, os, json
 import numpy as np

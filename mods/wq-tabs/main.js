@@ -1,5 +1,5 @@
 // Pixel tab bar: each tab is an inventory slot with its party member's pixel face (same picks as wq-party) and status;
-// on the right, the + menu, the Files / Changes panel buttons and the Windows window buttons. Based on journey-tabs.
+// on the right, the + menu, the Files / Changes panel buttons and the Windows window buttons. Based on pixel-tabs of github.com/CHO-kr/frieren.
 // A tab nobody named shows "6 · <name>" in a dimmer color: its resumed agent session's title, else its first pane's repo
 // or folder, else its program (names.js; the tab itself keeps its number). A colored bar on the left marks its project
 // (the repo root or folder of its first pane), the same color for the same project.
@@ -84,7 +84,7 @@ export default class PixelTabs extends View {
     return known?.root;
   }
 
-  // The side panel is remembered per space (as journey-tabs does).
+  // The side panel is remembered per space (as Herdr's own tab bar does).
   syncPanel(space, panel, body, enabled) {
     if (!space || !panel) return;
     const now = panel.hidden ? null : body?.active ?? null;

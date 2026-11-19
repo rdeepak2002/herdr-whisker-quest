@@ -1,7 +1,7 @@
-// Pixel spaces: each space is a destination on the journey, with a pixel place tile; worktrees under their checkout,
+// Whisker Quest spaces: each space is a destination, shown as its scene's tile; worktrees under their checkout,
 // grouped by machine when more than one is known. After a space's name, the repo its first terminal is in now, only
 // where unusual: branch, ahead/behind. Click to travel there, right-click for its menu, drag to reorder.
-// Based on journey-spaces (same places, same pins in journey-spaces/places.json), drawn in pixels.
+// Based on pixel-spaces of github.com/CHO-kr/frieren. A space's scene: spacescene.js (pins in wq-spaces/places.json).
 // With exactly one space it shows that space as one slim row and shrinks its block to fit (layout.resize on the block
 // holding it, as pixel-quest's "fit" does; fit.js); with two or more the block gets back the size it had.
 // props (optional): fit false: never resize the block; block: that block's id when a layout has two wq-spaces blocks.
@@ -11,7 +11,7 @@ import { v_flex, h_flex } from "gpui-base";
 import { spaces, machines, panes, run, openOverlay, exec, hc, theme, shared, setShared, watchFolder, window, layout, appHome, readTextFile, props, checking } from "herdr";
 import { fitHeight, plan, H } from "./fit.js";
 
-// One place per space. Pin one in journey-spaces/places.json like {"space name": "camp"};
+// One scene per space. Pin one in wq-spaces/places.json like {"space name": "snow-north"};
 // otherwise the name picks a fixed place (reordering spaces doesn't change it).
 // A space's tile is its scene (spacescene.js, the same choice wq-chrome paints the window with).
 import { sceneMap, SCENE_NAMES } from "./spacescene.js";

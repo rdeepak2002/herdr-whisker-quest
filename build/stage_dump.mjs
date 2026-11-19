@@ -1,8 +1,8 @@
 // Runs pixel-pane's plan() in node for preview cases and prints what the stage would draw, as JSON (glyph strings as
-// code point lists), for stage_preview.py.
+// code point lists), for inspecting a plan.
 // usage: node stage_dump.mjs <pixel-pane dir> <cases.json> > plans.json
 //   cases.json: [{ "scene": "night", "night": false, "W": 512, "pick": 0,
-//                  "members": [["frieren", "working", "cast", true, 1, ["read", "cast"]], ...] }]
+//                  "members": [["mochi", "working", "cast", true, 1, ["read", "cast"]], ...] }]
 //   a member: [id, status, kind, focused, subagents, kinds done lately (its turns go through them; default [kind])]
 import { pathToFileURL } from "node:url";
 import { readFileSync } from "node:fs";

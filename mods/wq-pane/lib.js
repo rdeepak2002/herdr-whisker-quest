@@ -300,7 +300,7 @@ export function agentKey(a, agents) {
   return first && first.address !== a.address ? `agent:${a.address}` : `tab:${a.tab}`;
 }
 
-// jobs.json and name matches win, characters already given stay, new slots take the next free one (repeat after 16).
+// jobs.json and name matches win, characters already given stay, new slots take the next free one (repeat after 12).
 export function settle(prev, entries, jobs) {
   const next = {};
   const used = new Set();
@@ -313,13 +313,19 @@ export function settle(prev, entries, jobs) {
     const c = prev?.[e.key];
     if (BY_ID.has(c) && !used.has(c)) { next[e.key] = c; used.add(c); }
   }
+  // Slots not shown right now (an agent read from the screen can drop out for a moment) keep their cat, and new slots
+  // take other cats first, so nobody's cat changes when something opens or closes.
+  const here = new Set(entries.map((e) => e.key));
+  const held = Object.entries(prev ?? {}).filter(([k, c]) => !here.has(k) && BY_ID.has(c) && !used.has(c)).slice(-24);
+  const reserved = new Set(held.map(([, c]) => c));
   for (const e of entries) {
     if (next[e.key]) continue;
     if (used.size >= ROSTER.length) used.clear();
-    const c = ROSTER.find((r) => !used.has(r.id)).id;
+    const c = (ROSTER.find((r) => !used.has(r.id) && !reserved.has(r.id)) ?? ROSTER.find((r) => !used.has(r.id))).id;
     next[e.key] = c;
     used.add(c);
   }
+  for (const [k, c] of held) if (!used.has(c)) next[k] = c;
   return next;
 }
 

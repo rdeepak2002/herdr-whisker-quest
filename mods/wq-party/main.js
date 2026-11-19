@@ -1,4 +1,4 @@
-// Pixel party: each of agents() as a Frieren party member, drawn as an animated pixel sprite.
+// Pixel party: each of agents() as a cat in the party, drawn as an animated pixel sprite.
 // The sprite acts out what the agent is doing (status from Herdr, the current tool read from the agent's screen):
 // casting a spell for commands, reading a grimoire for reads and searches, writing runes for edits, flying for the web,
 // summoning for sub-agents, "!" when it needs you, a flower field when done, asleep when idle.

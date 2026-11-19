@@ -7,7 +7,7 @@
 //            the boss, who gets enraged halfway). Working members take turns; each turn plays one of the kinds of work
 //            its agent did lately (lib.js classify, `kinds`), with a normal attack in between:
 //              attack   fighters slash, slash twice, leap or dash in; mages fire a bolt, two bolts, a charged bolt or
-//                       Zoltraak; priests throw holy orbs or rain holy light and heal
+//                       a magic bolt; priests throw holy orbs or rain holy light and heal
 //              think    an attack, a pause to think it over, or gathering mana first
 //              read     scans for a weak point, then strikes it      write    a rune circle erupts under the monster
 //              search   tracks the monster's trail with a lens       plan     a map and arrows: the next strike crits
@@ -18,7 +18,7 @@
 //              summon   a sub-agent: a summoning circle, an ally (another character) joins the fight
 //            Every turn fills the member's SP gauge; a full gauge (and the last blow of every wave) is its special
 //            move (필살기): the stage dims, the move's name unfurls on a banner and the character's own finisher plays
-//            (Frieren's Zoltraak at full power, Stark's Sky Splitter, Himmel's Hero's Flash, …). Every two turns the
+//            (Mochi's COSMIC MEOW, Earl Grey's SKY POUNCE, Sakura's PETAL FLASH, …). Every two turns the
 //            monster strikes back: a shot, a charge, or a blast at the whole party; members block, dodge or are hurt
 //            (and healed by a priest). A member waiting for the person calls HELP!.
 //   victory  one is done and none works: a treasure chest, a rare grimoire, or a mimic.
@@ -632,7 +632,7 @@ function battle(members, sceneId, W, seed) {
   const SPC = {};
   const circleAt = (b, t, n) => spPlay(t, sp(b, "circle"), tipX(b) - 4, tipY(b), [0, 1, ...Array(Math.max(0, n - 2)).fill(2)]);
   const finish = (b, at) => { impactAt(b, at); return strikeMon(at, { special: true }); };
-  SPC.beam = (b, t) => { // Zoltraak at full power: a great circle, a beam as thick as the monster
+  SPC.beam = (b, t) => { // COSMIC MEOW: a great circle, a beam as thick as the monster
     charge(b, t);
     hold(b, t + 3, 18, B("attack"));
     circleAt(b, t, 20);

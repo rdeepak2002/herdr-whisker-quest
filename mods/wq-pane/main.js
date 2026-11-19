@@ -1,4 +1,4 @@
-// Pixel pane: two views of the shown tab's Frieren party (wq-party reads the agents' screens and shares what they
+// Pixel pane: two views of the shown tab's party of cats (wq-party reads the agents' screens and shares what they
 // do as shared("wq.activity")).
 //   { "mod": "wq-pane", "props": { "stage": true } }   a layout block: the battle stage. One strip of the background
 //       where the shown tab's party (one member per pane, each a different character) acts out what its agents do
