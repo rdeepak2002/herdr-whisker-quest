@@ -10,10 +10,10 @@ from PIL import Image
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # place id (wq-spaces PLACES) -> (scene, left, top) of its 32 x 32 cut
-TILES = {
-    'capital': ('lakeside-town', 256, 128), 'ruins': ('night', 432, 58), 'meadow': ('dawn-flowers', 452, 120),
-    'camp': ('autumn-road', 90, 110), 'tower': ('meteor-night', 410, 92), 'street': ('lakeside-town', 410, 112),
-    'tree': ('night', 336, 60), 'moon': ('mage-library', 420, 28),
+TILES = {  # scene id -> (scene, left, top): a space's tile is its scene
+    'lakeside-town': ('lakeside-town', 410, 112), 'night': ('night', 432, 58), 'dawn-flowers': ('dawn-flowers', 452, 120),
+    'autumn-road': ('autumn-road', 90, 110), 'meteor-night': ('meteor-night', 410, 92), 'snow-north': ('snow-north', 430, 150),
+    'mage-library': ('mage-library', 420, 28),
 }
 
 

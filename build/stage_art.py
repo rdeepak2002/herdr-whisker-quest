@@ -59,6 +59,16 @@ def band(home, scene):
 
 # ---------- monsters ----------
 def put(cv, spr, x, y, tint=None, k=0.0):
+    """A sprite at art pixel (x, y); a Pose (anim.pose_of) is drawn at its full detail."""
+    hi = getattr(spr, 'hi', None)
+    if hi is not None:
+        R = anim.RES
+        for j, i in zip(*np.nonzero(hi[..., 3])):
+            c = hi[j, i, :3].astype(float)
+            if tint is not None:
+                c = c * (1 - k) + np.array(tint) * k
+            cv._blend(x * R + i, y * R + j, (int(c[0]), int(c[1]), int(c[2]), 255))
+        return
     h, w = spr.shape[:2]
     for j in range(h):
         for i in range(w):
@@ -892,8 +902,9 @@ def main(home, atlas=None):
     os.makedirs(f'{party}/scenes', exist_ok=True)
     for sc in SCENES:
         band(home, sc).resize((STRIP_W * 2, SH * 2), Image.NEAREST).save(f'{party}/scenes/{sc}.png')
-    M = dict(np.load(f'{HERE}/spr_scene/monsters.npz').items())  # drawn at their final size (monsters.py)
-    P = dict(np.load(f'{HERE}/spr_scene/props.npz').items())
+    # full-detail sprites (cut_art.py), placed by their art-pixel size
+    M = {n: anim.pose_of(s) for n, s in np.load(f'{HERE}/spr_scene/monsters.npz').items()}
+    P = {n: anim.pose_of(s) for n, s in np.load(f'{HERE}/spr_scene/props.npz').items()}
     fonts = {}
 
     g, mon = Glyphs(), {}

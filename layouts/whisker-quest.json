@@ -45,6 +45,15 @@
               "min": 140,
               "border": { "width": 2, "color": "#efe6c8" },
               "background": { "gradient": ["#1c2a74f0", "#0c123ff0"], "angle": 180 }
+            },
+            {
+              "id": "sessions",
+              "type": "block",
+              "content": { "mod": "wq-sessions" },
+              "size": { "weight": 1.1 },
+              "min": 120,
+              "border": { "width": 2, "color": "#efe6c8" },
+              "background": { "gradient": ["#1c2a74f0", "#0c123ff0"], "angle": 180 }
             }
           ]
         },

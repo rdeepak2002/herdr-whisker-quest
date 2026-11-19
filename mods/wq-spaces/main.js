@@ -13,10 +13,14 @@ import { fitHeight, plan, H } from "./fit.js";
 
 // One place per space. Pin one in journey-spaces/places.json like {"space name": "camp"};
 // otherwise the name picks a fixed place (reordering spaces doesn't change it).
-const PLACES = { capital: "Royal Capital", ruins: "Old Ruins", meadow: "Flower Hill", camp: "Forest Camp", tower: "Rampart Watchtower", street: "Town Street", tree: "Starlit Old Tree", moon: "Moonlit Castle" };
-const PLACE_IDS = Object.keys(PLACES);
+// A space's tile is its scene (spacescene.js, the same choice wq-chrome paints the window with).
+import { sceneMap, SCENE_NAMES } from "./spacescene.js";
+const PLACES = SCENE_NAMES;
 const PLACES_FILE = `${appHome()}/mods/wq-spaces/places.json`;
-const placeOf = (name, places) => (PLACE_IDS.includes(places[name]) ? places[name] : PLACE_IDS[[...name].reduce((n, c) => n + c.codePointAt(0), 0) % PLACE_IDS.length]);
+const placeOf = (name, places) => {
+  const sp = spaces().find((s) => s.name === name);
+  return (sp && sceneMap(spaces(), shared("wq.scene.pick") ?? {}, places)[sp.id]) ?? "night";
+};
 const placeFor = (name, places) => `mods/wq-spaces/art/${placeOf(name, places)}.png`;
 const ICON = (n) => `mods/wq-chrome/icons/${n}.svg`;
 // Theme colors follow the background scene (wq-chrome writes them into the layout); this adds an alpha.

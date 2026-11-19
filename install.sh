@@ -11,7 +11,7 @@ set -eu
 SRC=$(cd "$(dirname "$0")" && pwd)
 HOME_DIR=${HERDR_APP_HOME:-$HOME/.config/herdr-app}
 MODE=${1:-install}
-MODS="wq-chrome wq-spaces wq-party wq-tabs wq-pane wq-new-menu"
+MODS="wq-chrome wq-spaces wq-party wq-tabs wq-pane wq-new-menu wq-sessions"
 
 if [ ! -d "$HOME_DIR" ]; then
   echo "No Herdr app home at $HOME_DIR. Start Herdr once first (https://herdr.dev)." >&2

@@ -5,7 +5,7 @@
 // first day (localStorage "quest.start").
 import { View, div, image, svg } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
-import { theme, run, props, window, shared, setShared, updates, layout, appHome, readTextFile, writeTextFile, checking, nextCommand } from "herdr";
+import { theme, run, props, window, shared, setShared, updates, layout, appHome, readTextFile, writeTextFile, checking, nextCommand, spaces } from "herdr";
 
 const ICON = (n) => `mods/wq-chrome/icons/${n}.svg`;
 
@@ -33,19 +33,18 @@ function toggleSidebar() {
   run("layout.resize", { id: "sidebar", px: folding ? (window()?.platform === "macos" ? 92 : FOLDED) : (shared("wq.sidebar.width") ?? 292) });
 }
 
-// Scenes: the layout's background takes turns through these, one per hour (backgrounds/whisker-quest-<id>.png),
-// and the whole palette follows: the root's theme color overrides ("colors"), the blocks' frames and gradients, and
-// the stage behind each sprite (shared "wq.scene", read by wq-party and wq-pane).
-// The brand row's quest widget shows the scene's name and, clicked, moves on to the next (shared "wq.scene.offset").
-// Herdr has no command for a layout's background or colors, so the brand row rewrites the shown layout's file, and only
-// when that file's background is one of the scenes (a picture of your own stops the rotation).
+// Scenes: each space has its own (spacescene.js: picked, pinned in mods/wq-spaces/places.json, or one its name
+// prefers that no other space has), so switching spaces switches the scene, and the whole look follows it: the
+// layout's background picture (backgrounds/whisker-quest-<id>.png), the root's theme color overrides ("colors"), the
+// blocks' frames and gradients, and the battle stage's strip, monster and card stages (shared "wq.scene", read by
+// wq-party and wq-pane). The brand row's quest widget names the scene; clicked, it moves this space on to the next
+// one (shared "wq.scene.pick"). Herdr has no command for a layout's background or colors, so the brand row rewrites
+// the shown layout's file, and only when that file's background is one of the scenes (a picture of your own stops it).
 import { SCENES } from "./scenes.js";
-const SCENE_EVERY = 3600000;
+import { sceneMap, nextScene as afterScene } from "./spacescene.js";
 const SCENE_RE = /"image":\s*"backgrounds\/whisker-quest-[a-z-]+\.png"/;
-const sceneIndex = () => {
-  const n = Math.floor(Date.now() / SCENE_EVERY) + (Number(shared("wq.scene.offset")) || 0);
-  return ((n % SCENES.length) + SCENES.length) % SCENES.length;
-};
+const PINS_FILE = () => `${appHome()}/mods/wq-spaces/places.json`;
+const activeSpace = () => spaces().find((s) => s.active) ?? spaces()[0] ?? null;
 const scenePath = (sc) => `backgrounds/whisker-quest-${sc.id}.png`;
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const oneLine = (o) => `{ ${Object.entries(o).map(([k, v]) => `"${k}": "${v}"`).join(", ")} }`;
@@ -87,17 +86,29 @@ export default class PixelChrome extends View {
     if (_props?.footer || props()?.footer) return;
     this.applied = null;
     this.applying = false;
-    cx.spawn(async (cx) => this.applyScene(cx));
-    cx.timer.every(60000, (cx) => cx.spawn(async (cx) => this.applyScene(cx)));
+    this.pins = {};
+    cx.spawn(async (cx) => {
+      try { const p = JSON.parse(await readTextFile(PINS_FILE())); if (p && typeof p === "object" && !Array.isArray(p)) this.pins = p; } catch {}
+      await this.applyScene(cx);
+    });
+    // the shown space (and with it its scene) changes without this copy re-rendering: look once a second (cheap)
+    cx.timer.every(1000, (cx) => { if (this.wanted().id !== this.applied) cx.spawn(async (cx) => this.applyScene(cx)); });
     // Key command "wq-chrome.next-scene" (bind it in keys.json) does what clicking the quest day does.
     cx.spawn(async (cx) => {
       for (;;) if (String(await nextCommand()).endsWith("next-scene")) this.nextScene(cx);
     });
   }
 
-  // Puts the current scene into the shown layout's file, if that layout's background is one of the scenes.
+  // the shown space's scene
+  wanted() {
+    const sp = activeSpace();
+    const id = sp ? sceneMap(spaces(), shared("wq.scene.pick") ?? {}, this.pins ?? {})[sp.id] : "night";
+    return SCENES.find((s) => s.id === id) ?? SCENES[0];
+  }
+
+  // Puts the shown space's scene into the shown layout's file, if that layout's background is one of the scenes.
   async applyScene(cx) {
-    const sc = SCENES[sceneIndex()];
+    const sc = this.wanted();
     if (this.applying || this.applied === sc.id) return;
     const name = shared("layout");
     if (!name) return;
@@ -116,8 +127,11 @@ export default class PixelChrome extends View {
     this.applying = false;
   }
 
+  // this space moves on to the next scene (remembered for it)
   nextScene(cx) {
-    setShared("wq.scene.offset", (Number(shared("wq.scene.offset")) || 0) + 1);
+    const sp = activeSpace();
+    if (!sp) return;
+    setShared("wq.scene.pick", { ...(shared("wq.scene.pick") ?? {}), [sp.id]: afterScene(this.wanted().id) });
     cx.spawn(async (cx) => this.applyScene(cx));
   }
 
@@ -152,7 +166,7 @@ export default class PixelChrome extends View {
         .child(v_flex().gap(2)
           .child(div().font_family("Galmuri14").text_size(15).text_color(t.foreground).child("HERDR"))
           .child(h_flex().id("quest-days").gap(4).items_center().cursor_pointer().hover((s) => s.opacity(0.8))
-            .tooltip(`Quest began ${ymd(this.start)}\nScene: ${SCENES[sceneIndex()].name} (changes every hour)\nClick: next scene`)
+            .tooltip(`Quest began ${ymd(this.start)}\nScene: ${this.wanted().name} (this space's)\nClick: give this space the next scene`)
             .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
             .on_click((_e, cx) => this.nextScene(cx))
             .child(svg(ICON(night ? "moon" : "sun")).size(10).text_color(night ? "#c8d4ff" : t.accent))

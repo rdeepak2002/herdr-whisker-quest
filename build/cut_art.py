@@ -4,8 +4,8 @@
 
 - cats:        gen/<cat>.png (a 4 x 2 pose sheet on magenta) -> spr/<cat>.npz, 8 grid-snapped poses (sprites.py), at
                the art-pixel size that makes the tallest pose fit the 32-row glyphs (31 rows, a row for the shadow)
-- monsters:    gen/monsters.png (8 monsters, 4 x 2) -> spr_scene/monsters.npz
-- props:       gen/props.png (8 camp props, 4 x 2) -> spr_scene/props.npz
+- monsters:    gen/monsters.png (8 monsters, 4 x 2) -> spr_scene/monsters.npz, at full detail (tallest 60 rows)
+- props:       gen/props.png (8 camp props, 4 x 2) -> spr_scene/props.npz, likewise
 - backgrounds: gen/bg_<scene>.png -> backgrounds/whisker-quest-<scene>.png: snapped to a 512 x 288 art grid (each art
                pixel the median of its cell) in at most 96 colors, shown at 5x (2560 x 1440)
 """
@@ -100,6 +100,15 @@ def cut_sheet(path, names, k, colors=28):
     return dict(zip(names, imgs))
 
 
+def fit_k(path, names, rows):
+    """The smallest pixels (most detail) whose tallest object fits `rows` full-detail rows."""
+    for k in np.arange(4.5, 16.01, 0.25):
+        objs = cut_sheet(path, names, k)
+        if max(v.shape[0] for v in objs.values()) <= rows:
+            return k
+    return 16.0
+
+
 def background(scene, root):
     im = Image.open(f'{GEN}/bg_{scene}.png').convert('RGB')
     W, H = 512, 288
@@ -131,10 +140,10 @@ if __name__ == '__main__':
     for c in roster.CATS:
         k = cut_cat(c.id, f'{HERE}/spr')
         print('cat', c.id, 'k', k, flush=True)
-    mons = cut_sheet(f'{GEN}/monsters.png', MONSTERS, 12.0)
+    mons = cut_sheet(f'{GEN}/monsters.png', MONSTERS, fit_k(f'{GEN}/monsters.png', MONSTERS, 60), colors=40)
     np.savez_compressed(f'{HERE}/spr_scene/monsters.npz', **mons)
     print('monsters', {k: v.shape[:2] for k, v in mons.items()})
-    props = cut_sheet(f'{GEN}/props.png', PROPS, 12.0)
+    props = cut_sheet(f'{GEN}/props.png', PROPS, fit_k(f'{GEN}/props.png', PROPS, 60), colors=40)
     np.savez_compressed(f'{HERE}/spr_scene/props.npz', **props)
     print('props', {k: v.shape[:2] for k, v in props.items()})
     for sc in SCENES:
