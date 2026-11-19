@@ -63,9 +63,21 @@ export default class WqSessions extends View {
     });
   }
 
-  // the terminal already running a session (resumed with its id), if any
+  // session id -> the terminal running it (started with `--resume <id>` / `-r <id>`)
+  running() {
+    const out = new Map();
+    for (const t of terminals()) {
+      const argv = (t.argv ?? []).map(String);
+      argv.forEach((a, i) => {
+        if ((a === "--resume" || a === "-r") && argv[i + 1]) out.set(argv[i + 1], t);
+        else if (a.startsWith("--resume=")) out.set(a.slice(9), t);
+      });
+    }
+    return out;
+  }
+
   openIn(s) {
-    return terminals().find((t) => (t.argv ?? []).some((a) => String(a).includes(s.id))) ?? null;
+    return this.running().get(s.id) ?? null;
   }
 
   open(s) {
@@ -85,8 +97,8 @@ export default class WqSessions extends View {
       .catch(() => notify({ title: "Resume command", body: cmd, timeout: 8000 }));
   }
 
-  row(s, now, t) {
-    const live = this.openIn(s);
+  row(s, now, t, run) {
+    const live = run.get(s.id) ?? null;
     return h_flex().id(`s-${s.id}`).w_full().min_w(0).h(24).px(8).gap(6).items_center().flex_none()
       .cursor_pointer().hover((st) => st.bg(t.hover))
       .tooltip(`${s.title}\n${shortPath(s.cwd)}${s.branch ? ` · ${s.branch}` : ""}\n${s.account} · ${new Date(s.mtime).toLocaleString()}\n${live ? "Open in a tab: click to go there" : "Click: continue in a new tab · right-click: copy the resume command"}`)
@@ -101,6 +113,7 @@ export default class WqSessions extends View {
   render() {
     const t = theme();
     const now = Date.now();
+    const live = this.running();
     const all = this.list ?? [];
     const counts = Object.fromEntries(FILTERS.map(([k, , span]) => [k, all.filter((s) => now - s.mtime <= span).length]));
     const span = FILTERS.find(([k]) => k === this.filter)?.[2] ?? Infinity;
@@ -134,7 +147,7 @@ export default class WqSessions extends View {
       body = v_flex().id("sessions-scroll").w_full().flex_1().min_h(0).overflow_y_scrollbar().pb(4)
         .children(groups.flatMap((g) => [
           div().px(8).pt(6).pb(2).font_family("Galmuri9").text_size(10).text_color(t.accent).child(g.name),
-          ...g.items.map((s) => this.row(s, now, t)),
+          ...g.items.map((s) => this.row(s, now, t, live)),
         ]));
     }
     return v_flex().id("wq-sessions").size_full().min_h(0).text_color(t.foreground)

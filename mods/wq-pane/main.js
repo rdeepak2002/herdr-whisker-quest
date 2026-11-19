@@ -233,6 +233,7 @@ export default class PixelPane extends View {
       const real = ks.filter((k) => k !== "think");
       return (real.length ? real : ks).slice(-4);
     };
+    for (const k of [...this.seen.keys()]) if (!party.some((m) => m.key === k) && !panes().some((q) => q.pane === k)) this.seen.delete(k);
     const members = party.map((m) => ({ ...m, kinds: kindsOf(m) }));
     const base = JSON.stringify([party.map((m) => [m.ch.id, m.st, m.own]), sceneId, night, W, pick]);
     const full = JSON.stringify([base, members.map((m) => [m.kinds, m.summons ?? 0])]);

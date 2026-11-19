@@ -92,7 +92,7 @@ export default class PixelChrome extends View {
       await this.applyScene(cx);
     });
     // the shown space (and with it its scene) changes without this copy re-rendering: look once a second (cheap)
-    cx.timer.every(1000, (cx) => { if (this.wanted().id !== this.applied) cx.spawn(async (cx) => this.applyScene(cx)); });
+    cx.timer.every(1000, (cx) => { if (`${shared("layout")}|${this.wanted().id}` !== this.applied) cx.spawn(async (cx) => this.applyScene(cx)); });
     // Key command "wq-chrome.next-scene" (bind it in keys.json) does what clicking the quest day does.
     cx.spawn(async (cx) => {
       for (;;) if (String(await nextCommand()).endsWith("next-scene")) this.nextScene(cx);
@@ -109,9 +109,8 @@ export default class PixelChrome extends View {
   // Puts the shown space's scene into the shown layout's file, if that layout's background is one of the scenes.
   async applyScene(cx) {
     const sc = this.wanted();
-    if (this.applying || this.applied === sc.id) return;
     const name = shared("layout");
-    if (!name) return;
+    if (!name || this.applying || this.applied === `${name}|${sc.id}`) return;
     this.applying = true;
     try {
       const file = `${appHome()}/layouts/${name}.json`;
@@ -119,7 +118,7 @@ export default class PixelChrome extends View {
       if (text && SCENE_RE.test(text)) {
         const next = paint(text, sc);
         if (next !== text) await writeTextFile(file, next, text);
-        this.applied = sc.id;
+        this.applied = `${name}|${sc.id}`;
         if (shared("wq.scene") !== sc.id) setShared("wq.scene", sc.id);
         cx.notify();
       }

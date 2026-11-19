@@ -30,7 +30,7 @@ case "$MODE" in
     remove
     echo "Whisker Quest removed. (Your own layouts, mods and keys were not touched.)"
     exit 0 ;;
-  --update) remove ;;
+  --update) ;;
   install)
     taken=""
     for m in $MODS; do [ -e "$HOME_DIR/mods/$m" ] && taken="$taken mods/$m"; done
@@ -43,18 +43,33 @@ case "$MODE" in
   *) echo "usage: ./install.sh [--update | --remove]" >&2; exit 2 ;;
 esac
 
+# Everything is copied into a staging folder first and checked; only then does it replace what's installed, so a
+# failed copy (a missing file, a full disk) leaves the installed version working.
+for f in layouts/whisker-quest.json themes/whisker-quest.json; do [ -f "$SRC/$f" ] || { echo "Missing $f in $SRC" >&2; exit 1; }; done
+for m in $MODS; do [ -f "$SRC/mods/$m/main.js" ] || { echo "Missing mods/$m in $SRC" >&2; exit 1; }; done
+STAGE=$(mktemp -d "$HOME_DIR/.whisker-quest-install.XXXXXX")
+trap 'rm -rf "$STAGE"' EXIT
+mkdir -p "$STAGE/mods" "$STAGE/backgrounds"
+for m in $MODS; do
+  mkdir "$STAGE/mods/$m"
+  (cd "$SRC/mods/$m" && find . -type f ! -name '*.test.mjs' | while read -r f; do
+    mkdir -p "$STAGE/mods/$m/$(dirname "$f")"
+    cp "$f" "$STAGE/mods/$m/$f"
+  done)
+done
+cp "$SRC"/backgrounds/whisker-quest-*.png "$STAGE/backgrounds/"
+
+[ "$MODE" = "--update" ] && remove
 mkdir -p "$HOME_DIR/mods" "$HOME_DIR/layouts" "$HOME_DIR/themes" "$HOME_DIR/backgrounds"
 for m in $MODS; do
   # mod.json first, so Herdr doesn't dock the mod into the layout you're looking at
   mkdir "$HOME_DIR/mods/$m"
-  cp "$SRC/mods/$m/mod.json" "$HOME_DIR/mods/$m/"
-  (cd "$SRC/mods/$m" && find . -type f ! -name mod.json ! -name '*.test.mjs' | while read -r f; do
-    mkdir -p "$HOME_DIR/mods/$m/$(dirname "$f")"
-    cp "$f" "$HOME_DIR/mods/$m/$f"
-  done)
+  cp "$STAGE/mods/$m/mod.json" "$HOME_DIR/mods/$m/"
+  rm "$STAGE/mods/$m/mod.json"
+  (cd "$STAGE/mods/$m" && tar cf - .) | (cd "$HOME_DIR/mods/$m" && tar xf -)
 done
+cp "$STAGE"/backgrounds/whisker-quest-*.png "$HOME_DIR/backgrounds/"
 cp "$SRC/themes/whisker-quest.json" "$HOME_DIR/themes/"
-cp "$SRC"/backgrounds/whisker-quest-*.png "$HOME_DIR/backgrounds/"
 [ -f "$SRC/layouts/whisker-quest.png" ] && cp "$SRC/layouts/whisker-quest.png" "$HOME_DIR/layouts/"
 cp "$SRC/layouts/whisker-quest.json" "$HOME_DIR/layouts/"
 

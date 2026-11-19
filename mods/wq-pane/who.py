@@ -45,9 +45,9 @@ def env_of(pid):
     r = subprocess.run(["ps", "eww", "-o", "command=", "-p", str(pid)], capture_output=True, text=True)
     env = {}
     for key in ("CLAUDE_CONFIG_DIR", "CODEX_HOME"):
-        m = re.search(r"(?:^|\s)" + key + r"=(\S+)", r.stdout)
+        m = re.search(r"(?:^|\s)" + key + r"=(.*?)(?=\s[A-Za-z_][A-Za-z0-9_]*=|$)", r.stdout.strip())
         if m:
-            env[key] = m.group(1)
+            env[key] = m.group(1).strip()
     return env
 
 

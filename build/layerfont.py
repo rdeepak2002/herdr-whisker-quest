@@ -62,7 +62,10 @@ def rects_glyph(cells, H, unit=U):
 
 def palette_of(frames, max_colors):
     """The colors every frame is drawn in: alpha snapped to 16 steps, merged down to max_colors when there are more."""
-    allpx = np.concatenate([f[f[..., 3] > 0].reshape(-1, 4) for f in frames if (f[..., 3] > 0).any()])
+    drawn = [f[f[..., 3] > 0].reshape(-1, 4) for f in frames if (f[..., 3] > 0).any()]
+    if not drawn:
+        raise SystemExit('layerfont: every frame is empty (check the cut art)')
+    allpx = np.concatenate(drawn)
     allpx = allpx.copy()
     allpx[:, 3] = (np.round(allpx[:, 3] / 17) * 17).astype(np.uint8)
     uniq, counts = np.unique(allpx, axis=0, return_counts=True)

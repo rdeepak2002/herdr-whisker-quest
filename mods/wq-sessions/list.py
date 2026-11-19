@@ -101,11 +101,11 @@ def main():
                 st = os.stat(path)
             except OSError:
                 continue
-            found.append((st.st_mtime, st.st_size, path, name, cmd))
+            found.append((st.st_mtime, st.st_size, path, name, cmd, f"{st.st_ino}|{st.st_mtime_ns}|{st.st_size}"))
     found.sort(reverse=True)
     out, fresh = [], {}
-    for mtime, size, path, name, cmd in found[:limit]:
-        key = f"{path}|{int(mtime)}|{size}"
+    for mtime, size, path, name, cmd, stamp in found[:limit]:
+        key = f"{path}|{stamp}"
         info = cache.get(key)
         if info is None:
             try:

@@ -52,6 +52,8 @@ def cut_cat(cid, out):
         poses = cut_poses(cid, k)
         if max(p.shape[0] for p in poses) <= 31 * 2:
             break
+    else:
+        raise SystemExit(f'{cid}: no pixel size up to 16 fits its poses in 62 rows; check gen/{cid}.png')
     anchors = []
     for p in poses:  # the head: centroid of the top 35%
         top = p[: max(1, int(p.shape[0] * 0.35)), :, 3] > 0
@@ -106,17 +108,21 @@ def fit_k(path, names, rows):
         objs = cut_sheet(path, names, k)
         if max(v.shape[0] for v in objs.values()) <= rows:
             return k
-    return 16.0
+    raise SystemExit(f'{path}: no pixel size up to 16 fits its objects in {rows} rows')
 
 
 def background(scene, root):
     im = Image.open(f'{GEN}/bg_{scene}.png').convert('RGB')
     W, H = 512, 288
     w, h = im.size
-    th = round(w * 9 / 16)  # crop to 16:9 if needed
-    if th != h:
-        top = max(0, (h - th) // 2)
-        im = im.crop((0, top, w, top + min(th, h)))
+    if w < 512 or h < 288:
+        raise SystemExit(f'gen/bg_{scene}.png is {w} x {h}: it needs at least 512 x 288')
+    if w * 9 > h * 16:  # too wide: crop the sides to 16:9
+        tw = round(h * 16 / 9)
+        im = im.crop(((w - tw) // 2, 0, (w - tw) // 2 + tw, h))
+    elif w * 9 < h * 16:  # too tall: crop top and bottom
+        th = round(w * 9 / 16)
+        im = im.crop((0, (h - th) // 2, w, (h - th) // 2 + th))
     a = np.asarray(im)
     h, w = a.shape[:2]
     out = np.zeros((H, W, 3), np.uint8)

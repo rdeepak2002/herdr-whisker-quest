@@ -43,6 +43,7 @@ function inLayer(I, str, k) {
     const cp = ch.codePointAt(0);
     r += cp >= I.base && cp < I.base + I.stride ? String.fromCodePoint(cp + off) : ch;
   }
+  if (I.mapped.size > 4000) I.mapped.clear();
   I.mapped.set(key, r);
   return r;
 }
