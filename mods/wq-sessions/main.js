@@ -2,10 +2,11 @@
 // grouped by day, in the sidebar under the party. Click one to continue it in a new tab, in its folder, with the
 // account that made it (`claude --resume <id>`); if a tab already runs it, that tab gets focus. Right-click a row
 // to copy its resume command. Filters: All · 7d · 30d.
-// Reads only local transcripts, through list.py (python3, read-only; see its docstring). No network.
+// Reads only transcripts, through list.py (python3, read-only; see its docstring): this Mac's, and on each connected
+// SSH machine that machine's own (through herdr-core, like everything Herdr does there). No other network use.
 import { View, div, svg } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
-import { exec, appHome, theme, run, terminals, checking, notify } from "herdr";
+import { exec, appHome, theme, run, terminals, checking, notify, machines, spaces, readTextFile } from "herdr";
 
 const LIST = () => `${appHome()}/mods/wq-sessions/list.py`;
 const ICON = (n) => `mods/wq-chrome/icons/${n}.svg`;
@@ -44,20 +45,36 @@ export default class WqSessions extends View {
     cx.timer.every(30000, (cx) => this.load(cx));
   }
 
+  // This Mac's sessions, and each connected SSH machine's (list.py's source runs on that machine's python3, so it
+  // lists the transcripts there; a machine that can't be asked keeps what it showed last).
   load(cx) {
     if (this.loading) return;
     this.loading = true;
     cx.spawn(async (cx) => {
+      const remote = machines().filter((m) => m.name && m.layout === "ready" && !m.temporary).map((m) => m.name);
+      this.remote ??= {};
       try {
         const r = await exec("python3", [LIST()], { timeout: 20000 });
         const list = JSON.parse(r.stdout || "[]");
         if (Array.isArray(list)) {
-          this.list = list;
+          this.local = list;
           this.error = null;
         }
       } catch (e) {
         this.error = String(e?.message ?? e).split("\n")[0];
       }
+      if (remote.length) {
+        this.src ??= await readTextFile(LIST()).catch(() => null);
+        await Promise.all(remote.map(async (m) => {
+          try {
+            const r = await exec("python3", ["-c", this.src, "200"], { on: m, timeout: 30000 });
+            const list = JSON.parse(r.stdout || "[]");
+            if (Array.isArray(list)) this.remote[m] = list.map((x) => ({ ...x, machine: m }));
+          } catch {} // the machine is away or has no python3: keep its last list
+        }));
+      }
+      for (const m of Object.keys(this.remote)) if (!remote.includes(m) && !machines().some((k) => k.name === m)) delete this.remote[m];
+      this.list = [...(this.local ?? []), ...Object.values(this.remote).flat()].sort((a, b) => b.mtime - a.mtime);
       this.loading = false;
       cx.notify();
     });
@@ -88,11 +105,18 @@ export default class WqSessions extends View {
     }
     const args = { name: s.title.slice(0, 28), argv: [s.cmd, "--resume", s.id] };
     if (s.cwd) args.folder = s.cwd;
+    if (s.machine) {
+      // on its own machine: a new tab in a space there, or a new space there
+      const sp = spaces().find((x) => x.machine === s.machine && x.active) ?? spaces().find((x) => x.machine === s.machine);
+      if (sp) run("tab.new", { ...args, space: sp.id });
+      else run("space.new", { ...args, machine: s.machine, tab: args.name });
+      return;
+    }
     run("tab.new", args);
   }
 
   copy(s) {
-    const cmd = `${s.cwd ? `cd ${quote(s.cwd)} && ` : ""}${s.cmd} --resume ${s.id}`;
+    const cmd = `${s.machine ? `ssh ${s.machine} -t ` : ""}${s.cwd ? `cd ${quote(s.cwd)} && ` : ""}${s.cmd} --resume ${s.id}`;
     exec("python3", ["-c", "import subprocess, sys; subprocess.run(['pbcopy'], input=sys.argv[1].encode(), check=True)", cmd]).then(() => notify({ title: "Resume command copied", body: cmd, timeout: 3000 }))
       .catch(() => notify({ title: "Resume command", body: cmd, timeout: 8000 }));
   }
@@ -106,6 +130,7 @@ export default class WqSessions extends View {
       .on_mouse_down("right", (_e, cx) => { cx.stop_propagation(); this.copy(s); })
       .child(div().size(5).flex_none().bg(live ? t.working : "#00000000"))
       .child(div().flex_1().min_w(0).truncate().text_size(12).text_color(live ? t.foreground : t.muted).child(s.title))
+      .when(Boolean(s.machine), (el) => el.child(div().flex_none().font_family("Galmuri9").text_size(10).text_color(t.accent).child(s.machine)))
       .when(s.account !== "claude", (el) => el.child(div().flex_none().font_family("Galmuri9").text_size(10).text_color(t.dim).child(s.account)))
       .child(div().flex_none().font_family("Galmuri9").text_size(10).text_color(t.dim).child(ago(s.mtime, now)));
   }

@@ -21,7 +21,7 @@ WRAPPERS = ("sh", "bash", "zsh", "fish", "dash", "node", "bun", "env", "login", 
 
 def processes():
     """{pid: (parent pid, program name)} for every process of this user now."""
-    r = subprocess.run(["ps", "-axo", "pid=,ppid=,comm="], capture_output=True, text=True)
+    r = subprocess.run(["ps", "-eo", "pid=,ppid=,comm="], capture_output=True, text=True)
     out = {}
     for line in r.stdout.splitlines():
         parts = line.strip().split(None, 2)

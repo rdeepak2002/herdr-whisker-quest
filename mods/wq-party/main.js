@@ -78,6 +78,17 @@ export function sprite(ch, anim, solo, key) {
     }));
 }
 
+// who.py on the machine the terminal runs on: here as a file; on an SSH machine its source goes to that machine's
+// python3 (`exec` with `on`), with the terminal's address as that machine's herdr-core knows it (no "machine/").
+let WHO_SRC = null;
+async function runWho(terminal, machine) {
+  const path = `${appHome()}/mods/wq-pane/who.py`;
+  if (!machine) return exec("python3", [path, terminal], { timeout: 15000 });
+  WHO_SRC ??= await readTextFile(path);
+  const local = String(terminal).includes("/") ? String(terminal).split("/").pop() : terminal;
+  return exec("python3", ["-c", WHO_SRC, local], { on: machine, timeout: 20000 });
+}
+
 export default class PixelParty extends View {
   init(_props, cx) {
     this.jobs = {};
@@ -170,7 +181,7 @@ export default class PixelParty extends View {
       cx.spawn(async (cx) => {
         let found = { at: Date.now(), error: "lookup failed" };
         try {
-          const r = await exec("python3", [WHO, a.address]);
+          const r = await runWho(a.address, spaces().find((s) => s.id === a.space)?.machine ?? null);
           const out = parse(r.stdout || "{}") ?? {};
           found = out.account ? { at: Date.now(), account: out.account, model: out.model ?? null } : { at: Date.now(), error: out.error || "lookup failed" };
         } catch (e) {
