@@ -1,0 +1,22 @@
+%%{init: {'theme': 'base', 'themeVariables': {'background': '#0e1546', 'primaryColor': '#28327e', 'primaryTextColor': '#f2ecd8', 'primaryBorderColor': '#ffd36a', 'lineColor': '#ffd36a', 'edgeLabelBackground': '#0e1546', 'clusterBkg': '#141c52', 'clusterBorder': '#efe6c8', 'titleColor': '#f2ecd8', 'fontSize': '16px'}}}%%
+flowchart TB
+  classDef src fill:#3a2a4a,stroke:#ffb4cf,color:#f2ecd8
+  classDef step fill:#28327e,stroke:#ffd36a,color:#f2ecd8
+  classDef out fill:#123a35,stroke:#7fe0b8,color:#f2ecd8
+
+  gen["build/gen/*.png<br/>AI-generated sheets:<br/>12 cats · monsters · props · 7 scenes"]:::src
+  cut["cut_art.py<br/>drop the magenta, snap to the pixel grid,<br/>pick the pixel size that fits"]:::step
+  anim["anim.py<br/>every cat animation + magic,<br/>cats at 2x detail"]:::step
+  stage["stage_art.py + special_art.py<br/>monsters · effects · props · specials"]:::step
+  lf["layerfont.py<br/>one glyph per frame per color"]:::step
+  fonts["mods/wq-party/fonts/*.ttf<br/>+ layers.js (each glyph's colors)"]:::out
+  bg["backgrounds/ · scene strips<br/>card stages · space tiles"]:::out
+  pal["palettes.py → wq-chrome/scenes.js<br/>each scene's UI colors"]:::out
+
+  gen --> cut
+  cut --> anim
+  cut --> stage
+  cut --> bg
+  anim --> lf
+  stage --> lf
+  lf --> fonts

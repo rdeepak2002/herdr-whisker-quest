@@ -153,65 +153,112 @@ account.
 
 ## How it works
 
+### How it hooks into Herdr
+
+Herdr is built to be reshaped by files: everything you see is a **layout** (a JSON file that splits the window
+into panels) whose panels are filled by **mods** (small JavaScript programs Herdr runs and draws natively with its
+GPU UI, GPUI). Whisker Quest is one layout and seven mods; it adds nothing to Herdr itself and changes none of its
+own files. Here is what talks to what while it runs:
+
+![How Whisker Quest runs inside Herdr](docs/architecture-runtime.png)
+
+1. **The layout** (`layouts/whisker-quest.json`) puts each mod in its panel: `wq-chrome` in the top-left brand row,
+   `wq-spaces`, `wq-party` and `wq-sessions` down the sidebar, `wq-tabs` in the top bar, `wq-pane` twice (the battle
+   stage, and the header on every pane), and Herdr's own status bar.
+2. **Herdr runs the mods** and hands them live data (your spaces, tabs, panes and agents with their status:
+   working, waiting, done, idle) and commands (`pane.focus`, `tab.new`, `space.select`, ...). Whenever that data
+   changes, each mod's `render()` describes its panel again, and Herdr draws it.
+3. **herdr-core (`hc`)** runs every terminal and agent. `wq-party` reads what each agent's screen shows with
+   `hc read` (every 1.5 s while it works) and recognizes the tool it's running (`Read(...)`, `Bash(npm test)`, a
+   permission prompt, ...). That becomes the cat's action: casting, reading the grimoire, a test combo, a forge.
+4. **The mods share state** through Herdr's shared store: `wq.who` (which cat each terminal is), `wq.activity` (what
+   each agent is doing), `wq.party` (cat picks that stick), `wq.scene.pick` (a space's chosen scene). `wq-pane`
+   reads them to choreograph the battle (`plan.js`: waves, turns per kind of work, specials, camp pastimes).
+5. **The scene follows the space.** Herdr has no command to change a layout's wallpaper, so when you switch spaces
+   `wq-chrome` rewrites the background picture and colors in `layouts/whisker-quest.json` and Herdr applies the edit
+   at once. The stage and cards work out the same scene themselves (`spacescene.js`), so they switch instantly.
+6. **The sprites are fonts.** Mods can't draw pixels, only text, images and boxes, so every animation frame is a
+   glyph in a font (`mods/wq-party/fonts/*.ttf`, loaded by Herdr at start) and `.frames([...], ms)` flips through
+   them on Herdr's animation clock, with no JavaScript running per frame.
+7. **Colors on macOS.** On macOS, Herdr draws every font in one color, so each sprite is one glyph *per color*,
+   stacked as text elements in their own colors and kept in sync by the shared clock (`build/layerfont.py`,
+   `layers.js`). To keep that within Herdr's render budget, `wq-pane/stagelayers.js` builds the stage's elements
+   ahead of time: boxes of one font share an element, spacer glyphs place sprites side by side, and each text line
+   is one art pixel tall, so a sprite's height on the stage is just which line it's on.
+8. **Local only.** The other mods ask your Mac directly: `wq-sessions` reads Claude Code's transcripts in
+   `~/.claude*/projects` (with `python3`), `wq-spaces` runs `git status`, `wq-pane` runs `ps` to name the account of
+   an agent you typed by hand. Nothing goes over the network.
+
+### How the art is built (offline, once)
+
+The repository ships the built files, so you never need to run this. To change the art:
+`python3 build/build_all.py` (needs `pillow numpy scipy fonttools`).
+
+![How the art is built](docs/architecture-build.png)
+
+- `build/gen/` holds the AI-generated sheets ([build/ART.md](build/ART.md) has the prompts).
+- `cut_art.py` removes the magenta background and snaps every sprite to its pixel grid, choosing the pixel size so
+  each sheet fits (cats at 62 rows, drawn at twice the stage's art resolution so faces keep their detail).
+- `anim.py` composes every cat animation and its magic; `stage_art.py` and `special_art.py` add the monsters,
+  effects, props, specials and the stage strips cut from each scene.
+- `layerfont.py` turns all of it into fonts, one glyph per frame per color, plus `layers.js` (which colors each glyph
+  uses) for the mods.
+
+<details>
+<summary>Mermaid source of both diagrams (docs/diagrams/)</summary>
+
 ```mermaid
-flowchart LR
-  subgraph build["build/ (offline, run once: python3 build/build_all.py)"]
-    gen["gen/*.png<br/>AI-generated sheets<br/>(12 cats, monsters,<br/>props, 7 scenes)"] --> cut["cut_art.py<br/>pixel-snap to the art grid,<br/>remove magenta,<br/>pick pixel size"]
-    cut --> anim["anim.py<br/>every cat animation<br/>+ magic effects<br/>(2x detail canvas)"]
-    cut --> stage["stage_art.py + special_art.py<br/>monsters, fx, props,<br/>specials, stage strips"]
-    anim --> lf["layerfont.py<br/>one glyph per frame<br/>per color layer"]
-    stage --> lf
-    lf --> fonts["wq-party/fonts/*.ttf<br/>+ layers.js<br/>(colors, used layers,<br/>widths)"]
-    cut --> bg["backgrounds/*.png<br/>tiles, card stages"]
-    pal["palettes.py"] --> scenesjs["wq-chrome/scenes.js<br/>UI colors per scene"]
-  end
+%%{init: {'theme': 'base', 'themeVariables': {'background': '#0e1546', 'primaryColor': '#28327e', 'primaryTextColor': '#f2ecd8', 'primaryBorderColor': '#ffd36a', 'lineColor': '#ffd36a', 'edgeLabelBackground': '#0e1546', 'clusterBkg': '#141c52', 'clusterBorder': '#efe6c8', 'titleColor': '#f2ecd8', 'fontSize': '16px'}}}%%
+flowchart TB
+  classDef host fill:#1c2462,stroke:#efe6c8,color:#f2ecd8
+  classDef mod fill:#28327e,stroke:#ffd36a,color:#f2ecd8
+  classDef ext fill:#123a35,stroke:#7fe0b8,color:#f2ecd8
+  classDef file fill:#3a2a4a,stroke:#ffb4cf,color:#f2ecd8
 
-  subgraph herdr["Herdr app (GPUI, runs the mods)"]
-    chrome["wq-chrome<br/>brand row, scene per space:<br/>rewrites the layout's<br/>background + colors"]
-    party["wq-party<br/>party cards; reads agent<br/>screens (hc read) every 1.5 s;<br/>shares wq.activity, wq.who"]
-    pane["wq-pane<br/>battle stage + pane headers;<br/>plan.js choreography,<br/>stagelayers.js packing"]
-    tabs["wq-tabs"]
-    spacesm["wq-spaces"]
-    sess["wq-sessions<br/>Quest log (list.py reads<br/>~/.claude*/projects)"]
-    menu["wq-new-menu"]
-  end
+  core["<b>herdr-core (hc)</b><br/>runs every terminal and agent<br/>(Claude Code, Codex, shells)"]:::ext
+  herdr["<b>Herdr desktop app</b><br/>reads layouts/whisker-quest.json<br/>runs each wq-* mod in its panel<br/>gives mods live spaces · tabs · panes · agents<br/>draws their text, animates frames()<br/>loads the sprite fonts at start"]:::host
+  chrome["<b>wq-chrome</b><br/>brand row · picks each space's scene"]:::mod
+  party["<b>wq-party</b><br/>party cards · what each agent does"]:::mod
+  pane["<b>wq-pane</b><br/>battle stage + pane headers"]:::mod
+  others["<b>wq-spaces</b> JOURNEYS · <b>wq-tabs</b><br/><b>wq-sessions</b> Quest log · <b>wq-new-menu</b>"]:::mod
+  local["<b>this Mac only</b><br/>~/.claude*/projects · git · ps"]:::file
 
-  fonts --> party
-  fonts --> pane
-  bg --> chrome
-  scenesjs --> chrome
-  party -- "shared state" --> pane
-  chrome -- "wq.scene" --> pane
-  chrome -- "wq.scene" --> party
-  spacesm -. "same scene rule<br/>(spacescene.js)" .- chrome
+  core -- "hc read: each agent's screen text" --> party
+  herdr -- "live data + commands" --> chrome
+  herdr --> party
+  herdr --> pane
+  herdr --> others
+  chrome -- "rewrites the layout's background + colors" --> herdr
+  party -- "shared state: who is which cat, what they do" --> pane
+  others -- "python3 · git · ps" --> local
 ```
 
-What's custom in Whisker Quest (beyond the original's design):
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'background': '#0e1546', 'primaryColor': '#28327e', 'primaryTextColor': '#f2ecd8', 'primaryBorderColor': '#ffd36a', 'lineColor': '#ffd36a', 'edgeLabelBackground': '#0e1546', 'clusterBkg': '#141c52', 'clusterBorder': '#efe6c8', 'titleColor': '#f2ecd8', 'fontSize': '16px'}}}%%
+flowchart TB
+  classDef src fill:#3a2a4a,stroke:#ffb4cf,color:#f2ecd8
+  classDef step fill:#28327e,stroke:#ffd36a,color:#f2ecd8
+  classDef out fill:#123a35,stroke:#7fe0b8,color:#f2ecd8
 
-- **Color sprites on macOS.** Herdr draws mod text with GPUI, and on macOS GPUI draws a COLR color font in one color
-  (only Apple's own emoji font gets color, and naming a font like it hides real emoji). So a sprite is built as one
-  monochrome glyph per color (`build/layerfont.py`): the glyph for color *k* of frame *cp* sits at
-  `U+F0000 + k·stride + (cp − U+E000)`, and the mods stack one text element per color, each in its own text color,
-  all switching frames on Herdr's one shared animation clock. Every font also maps blank ASCII glyphs: macOS skips a
-  font without them.
-- **Double-detail cats.** The cats are drawn at 2× the stage's art resolution (`anim.RES`): effects keep their
-  chunky 2×2 pixels while each cat shows its whiskers and eye highlights.
-- **A battle stage that fits the render budget.** Herdr cuts off a render that runs too long, and stacking colors
-  multiplies the work. `wq-pane/stagelayers.js` runs when a battle is planned (on a timer), not in render: boxes of
-  one font share elements where they never draw over each other, glyphs are placed side by side with spacer glyphs
-  (1, 2, 4 … 512 px wide), and each element's text has **one line per art row** (`line_height` = one art pixel), so
-  a sprite's height on the stage is just which line it's on. Four fighting cats went from 757 elements and 520k frame
-  strings to 290 and 200k.
-- **A scene per space** (`spacescene.js` in `wq-chrome` and `wq-spaces`): the shown space's scene is painted into the
-  layout file (background picture, theme colors, panel gradients), and the stage, the card stages and the space tiles
-  follow it.
-- **One cat per agent everywhere.** `wq-party` publishes which cat each terminal is (`wq.who`), including agents it
-  only reads from the screen, so the cards, the stage, the headers and the tabs agree; cats stay with their agent
-  when other tabs open or close.
-- **The Quest log** (`wq-sessions`) and **macOS process lookups** (`wq-pane/who.py`, with `ps`) replace the
-  original's Windows-only session panels, PowerShell scripts and Windows API calls.
-- **The art pipeline**: `build/cut_art.py` turns the generated sheets into grid-snapped sprites (choosing the pixel
-  size that fits each sheet), backgrounds, stage strips, card stages and tiles. See [build/ART.md](build/ART.md).
+  gen["build/gen/*.png<br/>AI-generated sheets:<br/>12 cats · monsters · props · 7 scenes"]:::src
+  cut["cut_art.py<br/>drop the magenta, snap to the pixel grid,<br/>pick the pixel size that fits"]:::step
+  anim["anim.py<br/>every cat animation + magic,<br/>cats at 2x detail"]:::step
+  stage["stage_art.py + special_art.py<br/>monsters · effects · props · specials"]:::step
+  lf["layerfont.py<br/>one glyph per frame per color"]:::step
+  fonts["mods/wq-party/fonts/*.ttf<br/>+ layers.js (each glyph's colors)"]:::out
+  bg["backgrounds/ · scene strips<br/>card stages · space tiles"]:::out
+  pal["palettes.py → wq-chrome/scenes.js<br/>each scene's UI colors"]:::out
+
+  gen --> cut
+  cut --> anim
+  cut --> stage
+  cut --> bg
+  anim --> lf
+  stage --> lf
+  lf --> fonts
+```
+
+</details>
 
 ## Customize
 

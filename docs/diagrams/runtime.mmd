@@ -1,0 +1,23 @@
+%%{init: {'theme': 'base', 'themeVariables': {'background': '#0e1546', 'primaryColor': '#28327e', 'primaryTextColor': '#f2ecd8', 'primaryBorderColor': '#ffd36a', 'lineColor': '#ffd36a', 'edgeLabelBackground': '#0e1546', 'clusterBkg': '#141c52', 'clusterBorder': '#efe6c8', 'titleColor': '#f2ecd8', 'fontSize': '16px'}}}%%
+flowchart TB
+  classDef host fill:#1c2462,stroke:#efe6c8,color:#f2ecd8
+  classDef mod fill:#28327e,stroke:#ffd36a,color:#f2ecd8
+  classDef ext fill:#123a35,stroke:#7fe0b8,color:#f2ecd8
+  classDef file fill:#3a2a4a,stroke:#ffb4cf,color:#f2ecd8
+
+  core["<b>herdr-core (hc)</b><br/>runs every terminal and agent<br/>(Claude Code, Codex, shells)"]:::ext
+  herdr["<b>Herdr desktop app</b><br/>reads layouts/whisker-quest.json<br/>runs each wq-* mod in its panel<br/>gives mods live spaces · tabs · panes · agents<br/>draws their text, animates frames()<br/>loads the sprite fonts at start"]:::host
+  chrome["<b>wq-chrome</b><br/>brand row · picks each space's scene"]:::mod
+  party["<b>wq-party</b><br/>party cards · what each agent does"]:::mod
+  pane["<b>wq-pane</b><br/>battle stage + pane headers"]:::mod
+  others["<b>wq-spaces</b> JOURNEYS · <b>wq-tabs</b><br/><b>wq-sessions</b> Quest log · <b>wq-new-menu</b>"]:::mod
+  local["<b>this Mac only</b><br/>~/.claude*/projects · git · ps"]:::file
+
+  core -- "hc read: each agent's screen text" --> party
+  herdr -- "live data + commands" --> chrome
+  herdr --> party
+  herdr --> pane
+  herdr --> others
+  chrome -- "rewrites the layout's background + colors" --> herdr
+  party -- "shared state: who is which cat, what they do" --> pane
+  others -- "python3 · git · ps" --> local
