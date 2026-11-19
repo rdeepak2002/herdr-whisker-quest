@@ -1,0 +1,175 @@
+{
+  "id": "root",
+  "type": "row",
+  "padding": 8,
+  "gap": 8,
+  "resizable": false,
+  "children": [
+    {
+      "id": "sidebar",
+      "type": "column",
+      "size": { "px": 292 },
+      "min": 64,
+      "max": 480,
+      "gap": 8,
+      "resizable": false,
+      "children": [
+        {
+          "id": "brand",
+          "type": "block",
+          "content": { "mod": "wq-chrome" },
+          "size": { "px": 52 },
+          "window_drag": true,
+          "border": { "width": 2, "color": "#efe6c8" },
+          "background": { "gradient": ["#22307cf2", "#0e1546f2"], "angle": 180 }
+        },
+        {
+          "id": "sidebar-lists",
+          "type": "column",
+          "gap": 8,
+          "children": [
+            {
+              "id": "spaces",
+              "type": "block",
+              "content": { "mod": "wq-spaces" },
+              "size": { "weight": 0.6 },
+              "min": 76,
+              "border": { "width": 2, "color": "#efe6c8" },
+              "background": { "gradient": ["#1c2a74f0", "#0c123ff0"], "angle": 180 }
+            },
+            {
+              "id": "agents",
+              "type": "block",
+              "content": { "mod": "wq-party" },
+              "size": { "weight": 2.0 },
+              "min": 140,
+              "border": { "width": 2, "color": "#efe6c8" },
+              "background": { "gradient": ["#1c2a74f0", "#0c123ff0"], "angle": 180 }
+            }
+          ]
+        },
+        {
+          "id": "sidebar-footer",
+          "type": "block",
+          "content": { "mod": "wq-chrome", "props": { "footer": true } },
+          "size": { "px": 64 },
+          "border": { "width": 2, "color": "#efe6c8" },
+          "background": { "gradient": ["#1c2a74f0", "#0c123ff0"], "angle": 180 }
+        }
+      ]
+    },
+    {
+      "id": "work",
+      "type": "column",
+      "gap": 8,
+      "resizable": false,
+      "children": [
+        {
+          "id": "topbar",
+          "type": "row",
+          "size": { "px": 56 },
+          "gap": 8,
+          "resizable": false,
+          "children": [
+            {
+              "id": "tabs",
+              "type": "block",
+              "content": { "mod": "wq-tabs" },
+              "size": { "weight": 1 },
+              "window_drag": true,
+              "border": { "width": 2, "color": "#efe6c8" },
+              "background": { "gradient": ["#22307cf2", "#0e1546f2"], "angle": 180 }
+            }
+          ]
+        },
+        {
+          "id": "stage",
+          "type": "block",
+          "content": { "mod": "wq-pane", "props": { "stage": true } },
+          "size": { "px": 80 },
+          "border": { "width": 2, "color": "#efe6c8" },
+          "background": { "gradient": ["#22307cf2", "#0e1546f2"], "angle": 180 }
+        },
+        {
+          "id": "work-body",
+          "type": "row",
+          "gap": 8,
+          "children": [
+            {
+              "id": "main",
+              "type": "block",
+              "content": {
+                "tab": "active",
+                "pane": {
+                  "header": {
+                    "content": { "mod": "wq-pane" },
+                    "reveal": "always",
+                    "height": 30,
+                    "position": "top"
+                  },
+                  "border": { "width": 2, "color": "#efe6c8a8" },
+                  "focus": { "width": 2, "color": "#ffd36a" },
+                  "radius": 0,
+                  "gap": 8,
+                  "lone": true
+                }
+              }
+            },
+            {
+              "id": "panel",
+              "type": "column",
+              "children": [
+                {
+                  "id": "panel-body",
+                  "type": "stack",
+                  "children": [
+                    {
+                      "id": "files",
+                      "type": "block",
+                      "content": { "mod": "files" }
+                    },
+                    {
+                      "id": "changes",
+                      "type": "block",
+                      "content": { "mod": "changes" }
+                    }
+                  ],
+                  "active": "files"
+                }
+              ],
+              "size": { "px": 368 },
+              "min": 280,
+              "max": 900,
+              "border": { "width": 2, "color": "#efe6c8" },
+              "background": { "gradient": ["#1c2a74f0", "#0c123ff0"], "angle": 180 },
+              "hidden": true
+            }
+          ]
+        },
+        {
+          "id": "status",
+          "type": "block",
+          "content": { "mod": "workspace-status" },
+          "size": { "px": 28 },
+          "border": { "width": 2, "color": "#efe6c8" },
+          "background": "#0c123ff0"
+        }
+      ]
+    }
+  ],
+  "background": { "image": "backgrounds/whisker-quest-night.png", "fit": "cover" },
+  "theme": "whisker-quest",
+  "colors": { "background": "#0b1030c4", "foreground": "#f2ecd8", "muted": "#d2c9a8", "dim": "#a3a3d0", "accent": "#ffd36a", "accent_foreground": "#141a3c", "selection": "#3a3f8a", "selected": "#ffd36a2e", "working": "#86b4ff", "idle": "#8890bc", "chrome": "#121a4cf0", "surface": "#1a2462e6", "popover": "#151d50fa", "raised": "#28327e", "hover": "#fff4d01c", "border": "#7880c8", "input": "#3c4696", "ring": "#ffd36a", "ansi0": "#0b1030", "ansi8": "#6e74a8" },
+  "ui_font": "Galmuri11",
+  "terminal_opacity": 0.55,
+  "terminal_padding": [
+    12,
+    10
+  ],
+  "titlebar": "none",
+  "traffic_lights": [
+    20,
+    26
+  ],
+  "preview": "layouts/whisker-quest.png"
+}

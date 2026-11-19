@@ -1,0 +1,24 @@
+Whisker Quest: a cat-themed macOS layout for the Herdr app
+
+Whisker Quest is a fork of the Frieren layouts for Herdr by CHO-kr (https://github.com/CHO-kr/frieren):
+its Frieren Pixel layout and mods (pixel-chrome, pixel-spaces, pixel-party, pixel-tabs, pixel-pane,
+pixel-new-menu, pane-account) and their build scripts (mods/pixel-party/build) are the base of this repository's
+mods/wq-* and build/. That repository has no license file of its own; all credit for the original design,
+mods and build pipeline goes to its author.
+
+As that repository's NOTICE says, its mods derive from the traveler-* mods of the Traveler layout for Herdr
+(https://github.com/franky5440-afk/herdr-traveler, Copyright 2026 Frank Lin, Apache License 2.0), which in turn
+derive from Herdr's built-in workspace-chrome, spaces, tabs and pane mods (Apache License 2.0). The Apache License
+text is in LICENSES/Apache-2.0.txt.
+
+Changes in Whisker Quest: runs on macOS (sprite fonts drawn as stacked color layers, since macOS draws COLR fonts
+in one color; process lookups with ps; no Windows APIs, PowerShell or .cmd wrappers), works fully offline (no
+usage gauges, no network calls, no Remote Control flags), twelve pixel-art cats, eight new monsters, new props,
+seven new background scenes, place tiles and card stages, and the build pipeline to make them.
+
+mods/wq-chrome/fonts/Galmuri*.ttf are Galmuri by Lee Minseo (quiple), under the SIL Open Font License 1.1
+(mods/wq-chrome/fonts/LICENSE-Galmuri-OFL.txt, also in LICENSES/OFL-1.1-Galmuri.txt).
+
+The art (build/gen/*.png and everything made from it: backgrounds/, the sprite fonts, faces, strips, tiles) was
+generated for this project with an AI image model (OpenAI gpt-image through Figma AI) and then pixel-snapped and
+cleaned by build/cut_art.py. See build/ART.md for the prompts.

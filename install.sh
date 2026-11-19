@@ -1,0 +1,67 @@
+#!/bin/sh
+# Installs Whisker Quest into the Herdr app's home (~/.config/herdr-app, or $HERDR_APP_HOME) and switches to it.
+#
+#   ./install.sh            install; stops if a file or mod of the same name is already there
+#   ./install.sh --update   replace an earlier Whisker Quest install (only its own files: wq-* mods, whisker-quest-*)
+#   ./install.sh --remove   delete everything Whisker Quest installed
+#
+# Copies files only: no downloads, nothing leaves your machine.
+set -eu
+
+SRC=$(cd "$(dirname "$0")" && pwd)
+HOME_DIR=${HERDR_APP_HOME:-$HOME/.config/herdr-app}
+MODE=${1:-install}
+MODS="wq-chrome wq-spaces wq-party wq-tabs wq-pane wq-new-menu"
+
+if [ ! -d "$HOME_DIR" ]; then
+  echo "No Herdr app home at $HOME_DIR. Start Herdr once first (https://herdr.dev)." >&2
+  exit 1
+fi
+
+remove() {
+  for m in $MODS; do rm -rf "$HOME_DIR/mods/$m"; done
+  rm -f "$HOME_DIR/layouts/whisker-quest.json" "$HOME_DIR/layouts/whisker-quest.png" "$HOME_DIR/themes/whisker-quest.json"
+  rm -f "$HOME_DIR"/backgrounds/whisker-quest-*.png
+}
+
+case "$MODE" in
+  --remove)
+    if command -v herdr-app >/dev/null 2>&1; then herdr-app do layout.switch --name main >/dev/null 2>&1 || true; fi
+    remove
+    echo "Whisker Quest removed. (Your own layouts, mods and keys were not touched.)"
+    exit 0 ;;
+  --update) remove ;;
+  install)
+    taken=""
+    for m in $MODS; do [ -e "$HOME_DIR/mods/$m" ] && taken="$taken mods/$m"; done
+    for f in layouts/whisker-quest.json themes/whisker-quest.json; do [ -e "$HOME_DIR/$f" ] && taken="$taken $f"; done
+    if [ -n "$taken" ]; then
+      echo "Already there:$taken" >&2
+      echo "Run ./install.sh --update to replace an earlier Whisker Quest install." >&2
+      exit 1
+    fi ;;
+  *) echo "usage: ./install.sh [--update | --remove]" >&2; exit 2 ;;
+esac
+
+mkdir -p "$HOME_DIR/mods" "$HOME_DIR/layouts" "$HOME_DIR/themes" "$HOME_DIR/backgrounds"
+for m in $MODS; do
+  # mod.json first, so Herdr doesn't dock the mod into the layout you're looking at
+  mkdir "$HOME_DIR/mods/$m"
+  cp "$SRC/mods/$m/mod.json" "$HOME_DIR/mods/$m/"
+  (cd "$SRC/mods/$m" && find . -type f ! -name mod.json ! -name '*.test.mjs' | while read -r f; do
+    mkdir -p "$HOME_DIR/mods/$m/$(dirname "$f")"
+    cp "$f" "$HOME_DIR/mods/$m/$f"
+  done)
+done
+cp "$SRC/themes/whisker-quest.json" "$HOME_DIR/themes/"
+cp "$SRC"/backgrounds/whisker-quest-*.png "$HOME_DIR/backgrounds/"
+[ -f "$SRC/layouts/whisker-quest.png" ] && cp "$SRC/layouts/whisker-quest.png" "$HOME_DIR/layouts/"
+cp "$SRC/layouts/whisker-quest.json" "$HOME_DIR/layouts/"
+
+if command -v herdr-app >/dev/null 2>&1; then
+  for m in $MODS; do herdr-app check "$HOME_DIR/mods/$m" >/dev/null 2>&1 || { echo "check failed: $m" >&2; herdr-app check "$HOME_DIR/mods/$m" >&2 || true; }; done
+  herdr-app do layout.switch --name whisker-quest >/dev/null 2>&1 || true
+  echo "Whisker Quest installed. Herdr loads new fonts when it starts: quit and reopen Herdr once to see the cats."
+else
+  echo "Whisker Quest installed into $HOME_DIR. Pick it in Herdr: Settings > Look > Layout (then restart Herdr once)."
+fi
