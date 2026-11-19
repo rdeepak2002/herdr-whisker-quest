@@ -18,6 +18,7 @@ HOME = os.path.expanduser("~")
 CACHE_DIR = os.path.join(HOME, ".cache", "whisker-quest")
 CACHE = os.path.join(CACHE_DIR, "sessions.json")
 HEAD = 256 * 1024     # bytes read from the start (cwd, first prompt)
+FIRST_MAX = 16 * 1024 * 1024  # a first record longer than HEAD is read whole, up to this
 TAIL = 512 * 1024     # bytes read from the end (the latest title)
 
 
@@ -36,9 +37,11 @@ def lines(data):
         raw = raw.strip()
         if raw.startswith(b"{"):
             try:
-                yield json.loads(raw)
+                d = json.loads(raw)
             except ValueError:
                 continue
+            if isinstance(d, dict):  # a record of another shape is skipped, not fatal
+                yield d
 
 
 def text_of(content):
@@ -62,6 +65,8 @@ def read(path):
     size = os.path.getsize(path)
     with open(path, "rb") as fh:
         head = fh.read(HEAD)
+        if b"\n" not in head and size > HEAD:  # the first record is longer than HEAD: read it whole
+            head += fh.readline(FIRST_MAX)
         tail = b""
         if size > HEAD:
             fh.seek(max(HEAD, size - TAIL))
@@ -71,7 +76,8 @@ def read(path):
         cwd = cwd or d.get("cwd")
         branch = branch or d.get("gitBranch")
         if first is None and d.get("type") == "user" and not d.get("isMeta") and not d.get("isSidechain"):
-            t = clean(text_of((d.get("message") or {}).get("content")))
+            msg = d.get("message")
+            t = clean(text_of(msg.get("content") if isinstance(msg, dict) else msg))
             if t and not t.startswith(("Caveat:", "[Request interrupted")):
                 first = t
         if d.get("type") == "summary" and d.get("summary"):

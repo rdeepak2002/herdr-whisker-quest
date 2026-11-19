@@ -85,11 +85,11 @@ def account_for(agent, env, home):
 
 def model_flag(cmd):
     words = [w.strip("'\"") for w in re.findall(r"'[^']*'|\"[^\"]*\"|\S+", cmd)]
-    for i, w in enumerate(words[:-1]):
-        if w in ("--model", "-m"):
-            return words[i + 1]
+    for i, w in enumerate(words):
         if w.startswith("--model="):
             return w.split("=", 1)[1]
+        if w in ("--model", "-m") and i + 1 < len(words):
+            return words[i + 1]
     return None
 
 

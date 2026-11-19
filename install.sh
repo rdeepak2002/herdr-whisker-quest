@@ -34,7 +34,13 @@ case "$MODE" in
   install)
     taken=""
     for m in $MODS; do [ -e "$HOME_DIR/mods/$m" ] && taken="$taken mods/$m"; done
-    for f in layouts/whisker-quest.json themes/whisker-quest.json; do [ -e "$HOME_DIR/$f" ] && taken="$taken $f"; done
+    for f in layouts/whisker-quest.json layouts/whisker-quest.png themes/whisker-quest.json; do
+      { [ -e "$HOME_DIR/$f" ] || [ -L "$HOME_DIR/$f" ]; } && taken="$taken $f"
+    done
+    for f in "$SRC"/backgrounds/whisker-quest-*.png; do
+      b="backgrounds/$(basename "$f")"
+      { [ -e "$HOME_DIR/$b" ] || [ -L "$HOME_DIR/$b" ]; } && taken="$taken $b"
+    done
     if [ -n "$taken" ]; then
       echo "Already there:$taken" >&2
       echo "Run ./install.sh --update to replace an earlier Whisker Quest install." >&2
@@ -60,6 +66,10 @@ done
 cp "$SRC"/backgrounds/whisker-quest-*.png "$STAGE/backgrounds/"
 
 [ "$MODE" = "--update" ] && remove
+# never write through a link (it could point anywhere): the folders we write into must be real folders
+for d in "$HOME_DIR/mods" "$HOME_DIR/layouts" "$HOME_DIR/themes" "$HOME_DIR/backgrounds"; do
+  if [ -L "$d" ]; then echo "$d is a symbolic link; not writing through it." >&2; exit 1; fi
+done
 mkdir -p "$HOME_DIR/mods" "$HOME_DIR/layouts" "$HOME_DIR/themes" "$HOME_DIR/backgrounds"
 for m in $MODS; do
   # mod.json first, so Herdr doesn't dock the mod into the layout you're looking at

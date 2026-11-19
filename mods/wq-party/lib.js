@@ -356,7 +356,9 @@ export function launched(argv) {
   if (at < 0) return null;
   const after = (...names) => {
     const i = w.findIndex((x, n) => n > at && names.includes(x));
-    return i >= 0 ? w[i + 1] ?? null : null;
+    if (i >= 0) return w[i + 1] ?? null;
+    const eq = w.find((x, n) => n > at && names.some((nm) => nm.startsWith("--") && x.startsWith(`${nm}=`)));
+    return eq ? eq.slice(eq.indexOf("=") + 1) : null; // --model=opus
   };
   const account = w[at].split(/[\\/]/).pop().replace(/\.(cmd|exe)$/i, "").toLowerCase();
   return { account, model: after("--model", "-m"), resume: after("--resume", "resume") };
