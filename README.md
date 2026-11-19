@@ -8,7 +8,9 @@ knight charges when it runs tests, the cleric heals the party, and the whole par
 mimics and the dreaded **Vacuum Golem** on a battle stage above your terminals. Each Herdr space has its own scene,
 so switching spaces takes you somewhere new.
 
-![Whisker Quest in Herdr: four cats fight the Vacuum Golem above four Claude Code panes](docs/hero.png)
+![Whisker Quest in Herdr with four demo terminals, a cat battle, and a demo Quest log](docs/hero.png)
+
+[See the web-app demo space and its Quest log](docs/demo-web.png).
 
 ![The battle stage, recorded live: the party fights, Tiger uses TIGER CLAW, the cleric heals, the Vacuum Golem falls, and a treasure chest appears](docs/battle.gif)
 
@@ -53,7 +55,7 @@ space you're in:
   and the whole window follows it: the wallpaper, every panel's colors, the battle stage, its monster and the cards'
   little stages. Click **Quest · Day N** in the top-left corner to give the current space the next scene (it is
   remembered), or pin one by name in `mods/wq-spaces/places.json`: `{ "my-project": "snow-north" }`.
-- **Quest log**: your Claude Code sessions on this Mac (every login: `claude`, `claude2`, …), grouped by day.
+- **Quest log**: your Claude Code sessions on this computer and connected SSH machines (every login: `claude`, `claude2`, …), grouped by day.
   Click one to continue it in a new tab in its folder, or to jump to the tab already running it. Right-click to copy
   its `claude --resume` command.
 - **Pixel everything**: tabs as inventory slots with each cat's face, spaces (JOURNEYS) as scene tiles with their git state,
@@ -185,9 +187,9 @@ own files. Here is what talks to what while it runs:
    `layers.js`). To keep that within Herdr's render budget, `wq-pane/stagelayers.js` builds the stage's elements
    ahead of time: boxes of one font share an element, spacer glyphs place sprites side by side, and each text line
    is one art pixel tall, so a sprite's height on the stage is just which line it's on.
-8. **Local only.** The other mods ask your Mac directly: `wq-sessions` reads Claude Code's transcripts in
-   `~/.claude*/projects` (with `python3`), `wq-spaces` runs `git status`, `wq-pane` runs `ps` to name the account of
-   an agent you typed by hand. Nothing goes over the network.
+8. **Machine-local lookups.** `wq-sessions` runs its Python reader on this computer and each connected SSH machine
+   to list Claude Code sessions from `~/.claude*/projects`. `wq-pane` runs `ps` on the terminal’s machine to identify
+   the account of an agent you started by hand.
 
 ### How the art is built (offline, once)
 
