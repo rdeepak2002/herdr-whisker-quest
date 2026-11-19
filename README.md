@@ -1,5 +1,7 @@
 # Whisker Quest 🐾
 
+> **AI agents:** to install this, follow [INSTALL.md](INSTALL.md) step by step.
+
 A cozy pixel-art RPG layout for the [Herdr](https://herdr.dev) desktop app **on macOS**. Every coding agent you run
 (Claude Code, Codex) becomes a little pixel cat adventurer: the wizard casts when your agent runs commands, the
 knight charges when it runs tests, the cleric heals the party, and the whole party fights cucumber slimes, box
@@ -54,7 +56,7 @@ space you're in:
 - **Quest log**: your Claude Code sessions on this Mac (every login: `claude`, `claude2`, …), grouped by day.
   Click one to continue it in a new tab in its folder, or to jump to the tab already running it. Right-click to copy
   its `claude --resume` command.
-- **Pixel everything**: tabs as inventory slots with each cat's face, spaces as scene tiles with their git state,
+- **Pixel everything**: tabs as inventory slots with each cat's face, spaces (JOURNEYS) as scene tiles with their git state,
   pixel pane headers with a battle line, a pixel font (Galmuri), a foldable sidebar rail.
 - **Fully local.** No network calls, no telemetry of its own, no accounts. It reads only local files and asks
   `hc`, `git` and `ps` about your own terminals. Safe for a work laptop (read [Privacy](#privacy-and-safety)).
@@ -76,7 +78,7 @@ Rebuilding the art (not needed to use it) also needs `pip install pillow numpy s
 ### By hand
 
 ```sh
-git clone <this repo> ~/herdr-whisker-quest
+git clone https://github.com/rdeepak2002/herdr-whisker-quest ~/herdr-whisker-quest
 cd ~/herdr-whisker-quest
 ./install.sh
 ```
@@ -87,18 +89,19 @@ any time with `Ctrl+Shift+L` or **Settings → Look → Layout**. `./install.sh 
 
 ### Ask your AI agent to install it (works on a work laptop)
 
-Paste this into Claude Code, Codex or any coding agent on the Mac where Herdr is installed. It's written so an
-agent can follow it step by step:
+Give your agent this repository's link and say: **"Install this by following INSTALL.md exactly."**
+[INSTALL.md](INSTALL.md) is written for agents: prerequisites, install, restart, and how to check each step.
+Or paste this prompt into Claude Code, Codex or any coding agent on the Mac where Herdr is installed:
 
 ```text
-Install the Whisker Quest layout for the Herdr desktop app from <URL of this repo>. Follow these steps exactly:
+Install the Whisker Quest layout for the Herdr desktop app from https://github.com/rdeepak2002/herdr-whisker-quest. Follow these steps exactly:
 
 1. Check the prerequisites, and stop and tell me if one is missing:
    - macOS: `uname -s` prints Darwin.
    - Herdr is installed and has been started at least once: the folder ~/.config/herdr-app exists,
      and `herdr-app --version` and `hc --version` both work.
    - `python3 --version` prints 3.9 or newer, and `git --version` works.
-2. Clone the repository into a new folder: `git clone <URL> ~/herdr-whisker-quest`.
+2. Clone the repository into a new folder: `git clone https://github.com/rdeepak2002/herdr-whisker-quest ~/herdr-whisker-quest`.
    If that folder exists, `cd` into it and `git pull` instead.
 3. Read README.md (the "Privacy and safety" section) and tell me in one line what the mods run and read.
 4. From the repository folder, run `./install.sh`.
@@ -128,7 +131,7 @@ mods and `keys.json` alone.
 | Do this | What happens |
 |---|---|
 | Start Claude Code or Codex in a tab | a cat joins the party; its card and the stage show what it does |
-| Split a tab into panes with agents | up to four cats fight together on the stage |
+| Split a tab into panes with agents | up to four cats fight together on the stage (with more panes: the focused one, then agents at work, then other agents) |
 | Rename a tab to `Mochi`, `Tiger`, `Earl Grey`, … | that tab's agent becomes that cat |
 | Switch spaces | the scene (and the window's colors) changes with the space |
 | Click **Quest · Day N** (top left) | this space gets the next scene (hover it to see the scene's name) |
@@ -222,6 +225,18 @@ What's custom in Whisker Quest (beyond the original's design):
   `python3 build/build_all.py`, raise `FONT_VERSION` in `build/anim.py` and in each `lib.js` (Herdr keeps a loaded
   font family in memory), then `./install.sh --update` and restart Herdr.
 
+## Battery
+
+The stage redraws the window on every animation frame, so Whisker Quest is careful about when it animates:
+- every animation's frame time is a multiple of the stage's 90 ms step, so all of them change on the same ticks
+  (one redraw per tick instead of one per animation);
+- while no agent works, the camp animates for a minute and then holds still (no redraws) until a battle starts or the
+  pointer is on the stage;
+- screens of idle agents are read every ~6 s instead of every 1.5 s.
+
+Measured on an M-series Mac with Herdr's own CPU use: about 3 % at rest, about 20 % while four agents fight
+(Herdr's default layout: about 1 %).
+
 ## Privacy and safety
 
 Mods are trusted code that runs on your machine. Whisker Quest's:
@@ -248,6 +263,7 @@ Journey layout.
 - Herdr loads a layout's fonts only at start: restart Herdr after installing or rebuilding.
 - The motions come from reading each agent's screen, so a tool the screen doesn't show reads as thinking.
 - With more than seven spaces, scenes repeat.
+- The stage shows at most four cats per tab; the party list shows every agent.
 - macOS only (the original is for Windows).
 
 ## Uninstall
