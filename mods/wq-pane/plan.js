@@ -1160,8 +1160,8 @@ function still(members, sceneId, W, night, mode, pick) {
     const tentX = cx + 72;
     const bedrollX = tentX + STAGE.props.tent.w + 4;
     const roomForBoth = bedrollX + STAGE.props.bedroll.w <= W;
-    if (!night || roomForBoth) prop("tent", tentX);
-    if (night) prop("bedroll", roomForBoth ? bedrollX : tentX);
+    if (!night || roomForBoth) prop("tent", Math.min(tentX, W - STAGE.props.tent.w));
+    if (night) prop("bedroll", Math.min(roomForBoth ? bedrollX : tentX, W - STAGE.props.bedroll.w));
     const fire = night ? "embers" : members.some((m) => m.st === "idle") ? "cook" : "fire";
     prop(fire, cx - Math.floor(STAGE.props[fire].w / 2));
     const seats = [[cx - 25, false], [cx + 25, true], [cx - 51, false], [cx + 51, true]];

@@ -172,7 +172,7 @@ export default class PixelParty extends View {
   ask(cx) {
     const all = terminals();
     for (const a of agents()) {
-      if (!isAgent(a) || a.address.includes("/")) continue;
+      if (!isAgent(a)) continue;
       if (launched(all.find((k) => k.address === a.address)?.argv)) continue;
       const key = `${a.address}|${a.app ?? a.program?.key}`;
       const known = this.who[key];
@@ -200,15 +200,16 @@ export default class PixelParty extends View {
     const found = this.who[`${a.address}|${a.app ?? a.program?.key}`];
     const account = start?.account ?? found?.account ?? null;
     const codex = /codex/i.test(`${a.app ?? ""} ${account ?? ""}`);
+    const remote = a.address.includes("/");
     let session = null;
-    if (start?.resume) {
+    if (!remote && start?.resume) {
       session = codex
         ? this.codex.find((s) => s.id === start.resume)
         : this.claude.find((s) => s.cli === start.resume || s.path === start.resume || s.id === start.resume);
     }
-    const accountInfo = (shared(codex ? "sessions.codex" : "sessions.claude")?.accounts ?? []).find((x) => x.name === account);
+    const accountInfo = remote ? null : (shared(codex ? "sessions.codex" : "sessions.claude")?.accounts ?? []).find((x) => x.name === account);
     const model = start?.model ?? found?.model ?? session?.model ?? (!codex ? accountInfo?.model : null) ?? null;
-    const usage = (this.usage?.accounts ?? []).find((x) => x.name === account) ?? null;
+    const usage = remote ? null : (this.usage?.accounts ?? []).find((x) => x.name === account) ?? null;
     return { account, codex, model: modelName(model), title: cleanText(session?.title, 60), usage, pending: !account && !found };
   }
 

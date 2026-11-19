@@ -13,6 +13,7 @@ import json
 import os
 import re
 import sys
+import tempfile
 
 HOME = os.path.expanduser("~")
 CACHE_DIR = os.path.join(HOME, ".cache", "whisker-quest")
@@ -55,9 +56,16 @@ def text_of(content):
 
 
 def clean(s, n=80):
+    if not isinstance(s, str):
+        return ""
     s = re.sub(r"<[^>]{1,40}>[^<]*</[^>]{1,40}>", " ", s or "")  # drop tagged system text (<command-name>...)
     s = re.sub(r"\s+", " ", s).strip()
     return s[:n - 1] + "…" if len(s) > n else s
+
+
+def string_field(record, key):
+    value = record.get(key)
+    return value if isinstance(value, str) else None
 
 
 def read(path):
@@ -73,23 +81,23 @@ def read(path):
             tail = fh.read()
     cwd = branch = first = title = None
     for d in lines(head):
-        cwd = cwd or d.get("cwd")
-        branch = branch or d.get("gitBranch")
+        cwd = cwd or string_field(d, "cwd")
+        branch = branch or string_field(d, "gitBranch")
         if first is None and d.get("type") == "user" and not d.get("isMeta") and not d.get("isSidechain"):
             msg = d.get("message")
             t = clean(text_of(msg.get("content") if isinstance(msg, dict) else msg))
             if t and not t.startswith(("Caveat:", "[Request interrupted")):
                 first = t
-        if d.get("type") == "summary" and d.get("summary"):
+        if d.get("type") == "summary" and string_field(d, "summary"):
             title = d["summary"]
-        if d.get("type") == "ai-title" and d.get("aiTitle"):
+        if d.get("type") == "ai-title" and string_field(d, "aiTitle"):
             title = d["aiTitle"]
     for d in lines(tail):
-        if d.get("type") == "summary" and d.get("summary"):
+        if d.get("type") == "summary" and string_field(d, "summary"):
             title = d["summary"]
-        if d.get("type") == "ai-title" and d.get("aiTitle"):
+        if d.get("type") == "ai-title" and string_field(d, "aiTitle"):
             title = d["aiTitle"]
-        branch = d.get("gitBranch") or branch
+        branch = string_field(d, "gitBranch") or branch
     return {"cwd": cwd, "branch": branch, "title": clean(title or first or "", 80)}
 
 
@@ -99,6 +107,8 @@ def main():
         with open(CACHE, encoding="utf-8") as fh:
             cache = json.load(fh)
     except (OSError, ValueError):
+        cache = {}
+    if not isinstance(cache, dict):
         cache = {}
     found = []
     for name, cmd, root in accounts():
@@ -113,7 +123,10 @@ def main():
     for mtime, size, path, name, cmd, stamp in found[:limit]:
         key = f"{path}|{stamp}"
         info = cache.get(key)
-        if info is None:
+        if not isinstance(info, dict) or any(
+            info.get(field) is not None and not isinstance(info[field], str)
+            for field in ("title", "cwd", "branch")
+        ):
             try:
                 info = read(path)
             except OSError:
@@ -124,14 +137,22 @@ def main():
         out.append({"id": os.path.splitext(os.path.basename(path))[0], "account": name, "cmd": cmd,
                     "title": info["title"], "cwd": info.get("cwd"), "branch": info.get("branch"),
                     "mtime": int(mtime * 1000)})
+    tmp = None
     try:
         os.makedirs(CACHE_DIR, exist_ok=True)
-        tmp = CACHE + ".tmp"
-        with open(tmp, "w", encoding="utf-8") as fh:
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=CACHE_DIR, delete=False) as fh:
+            tmp = fh.name
             json.dump(fresh, fh)
         os.replace(tmp, CACHE)
+        tmp = None
     except OSError:
         pass
+    finally:
+        if tmp is not None:
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
     print(json.dumps(out))
 
 

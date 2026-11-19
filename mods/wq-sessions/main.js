@@ -34,6 +34,17 @@ function ago(ms, now) {
 const shortPath = (p) => String(p ?? "").replace(/^\/Users\/[^/]+/, "~");
 const quote = (s) => `'${String(s).replace(/'/g, "'\\''")}'`;
 
+const sessionKey = (machine, id) => JSON.stringify([machine ?? null, id]);
+
+function resumeCommand(s) {
+  const agent = [s.cmd, "--resume", s.id].map(quote).join(" ");
+  if (!s.machine) return s.cwd ? `cd ${quote(s.cwd)} && ${agent}` : agent;
+  // Herdr's machine name may differ from the SSH target or use a custom transport.
+  const cwd = s.cwd ? ` --cwd ${quote(s.cwd)}` : "";
+  const launch = `hc run --bg --json --no-parent --on ${quote(s.machine)}${cwd} -- ${agent}`;
+  return `session=$(${launch}) && hc attach "$(printf '%s' "$session" | python3 -c 'import json, sys; print(json.load(sys.stdin)["address"])')"`;
+}
+
 export default class WqSessions extends View {
   init(_props, cx) {
     this.list = null;
@@ -85,16 +96,17 @@ export default class WqSessions extends View {
     const out = new Map();
     for (const t of terminals()) {
       const argv = (t.argv ?? []).map(String);
+      const machine = /^([^/]+)\//.exec(t.address ?? "")?.[1] ?? null;
       argv.forEach((a, i) => {
-        if ((a === "--resume" || a === "-r") && argv[i + 1]) out.set(argv[i + 1], t);
-        else if (a.startsWith("--resume=")) out.set(a.slice(9), t);
+        if ((a === "--resume" || a === "-r") && argv[i + 1]) out.set(sessionKey(machine, argv[i + 1]), t);
+        else if (a.startsWith("--resume=")) out.set(sessionKey(machine, a.slice(9)), t);
       });
     }
     return out;
   }
 
   openIn(s) {
-    return this.running().get(s.id) ?? null;
+    return this.running().get(sessionKey(s.machine, s.id)) ?? null;
   }
 
   open(s) {
@@ -105,25 +117,21 @@ export default class WqSessions extends View {
     }
     const args = { name: s.title.slice(0, 28), argv: [s.cmd, "--resume", s.id] };
     if (s.cwd) args.folder = s.cwd;
-    if (s.machine) {
-      // on its own machine: a new tab in a space there, or a new space there
-      const sp = spaces().find((x) => x.machine === s.machine && x.active) ?? spaces().find((x) => x.machine === s.machine);
-      if (sp) run("tab.new", { ...args, space: sp.id });
-      else run("space.new", { ...args, machine: s.machine, tab: args.name });
-      return;
-    }
-    run("tab.new", args);
+    const onMachine = spaces().filter((sp) => (sp.machine || null) === (s.machine || null));
+    const sp = onMachine.find((x) => x.active) ?? onMachine[0];
+    if (sp) run("tab.new", { ...args, space: sp.id });
+    else run("space.new", { ...args, machine: s.machine ?? "", tab: args.name });
   }
 
   copy(s) {
-    const cmd = `${s.machine ? `ssh ${s.machine} -t ` : ""}${s.cwd ? `cd ${quote(s.cwd)} && ` : ""}${s.cmd} --resume ${s.id}`;
+    const cmd = resumeCommand(s);
     exec("python3", ["-c", "import subprocess, sys; subprocess.run(['pbcopy'], input=sys.argv[1].encode(), check=True)", cmd]).then(() => notify({ title: "Resume command copied", body: cmd, timeout: 3000 }))
       .catch(() => notify({ title: "Resume command", body: cmd, timeout: 8000 }));
   }
 
   row(s, now, t, run) {
-    const live = run.get(s.id) ?? null;
-    return h_flex().id(`s-${s.id}`).w_full().min_w(0).h(24).px(8).gap(6).items_center().flex_none()
+    const live = run.get(sessionKey(s.machine, s.id)) ?? null;
+    return h_flex().id(`s-${sessionKey(s.machine, s.id)}`).w_full().min_w(0).h(24).px(8).gap(6).items_center().flex_none()
       .cursor_pointer().hover((st) => st.bg(t.hover))
       .tooltip(`${s.title}\n${shortPath(s.cwd)}${s.branch ? ` · ${s.branch}` : ""}\n${s.account} · ${new Date(s.mtime).toLocaleString()}\n${live ? "Open in a tab: click to go there" : "Click: continue in a new tab · right-click: copy the resume command"}`)
       .on_click(() => this.open(s))

@@ -179,8 +179,9 @@ export default class PixelPane extends View {
       const why = found?.error ? `Started by hand in a shell, so its account couldn't be read.\n(${found.error})` : "Checking account…";
       return this.chip(t, `pa-${p.pane}`, "account ?", t.dim, why);
     }
-    const info = (shared(start.account.startsWith("codex") ? "sessions.codex" : "sessions.claude")?.accounts ?? []).find((a) => a.name === start.account);
-    const usage = shared("usage.accounts")?.[start.account];
+    const remote = p.terminal.includes("/");
+    const info = remote ? null : (shared(start.account.startsWith("codex") ? "sessions.codex" : "sessions.claude")?.accounts ?? []).find((a) => a.name === start.account);
+    const usage = remote ? null : shared("usage.accounts")?.[start.account];
     const model = start.model ?? (start.account.startsWith("claude") ? info?.model : null);
     const used = usage?.used;
     const level = used == null ? t.dim : used >= 90 ? t.blocked : used >= 70 ? t.working : t.muted;
@@ -275,6 +276,7 @@ export default class PixelPane extends View {
     const members = party.map((m) => ({ ...m, kinds: kindsOf(m) }));
     const base = JSON.stringify([party.map((m) => [m.ch.id, m.st, m.own]), sceneId, night, W, pick]);
     const full = JSON.stringify([base, members.map((m) => [m.kinds, m.summons ?? 0])]);
+    this.want = null; // A queued battle is only valid for the latest render.
     if (!this.cache || this.cache.base !== base || (this.cache.full !== full && ms - this.cache.at >= REPLAN_MS)) {
       const job = { base, full, at: ms, args: party.length ? [members, sceneId, night, W, pick] : null };
       // a battle takes a while to plan (the timer makes it); camp and victory are quick, so a space or tab switch shows
